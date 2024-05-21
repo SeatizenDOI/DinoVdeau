@@ -1,0 +1,15 @@
+name: dinovdeau_env
+dependencies:
+  - python=3.8
+  - pip
+  - pip:
+      - torch
+      - torchvision
+      - torchaudio
+      - transformers
+      - huggingface_hub,
+      - accelerate
+      - datasets
+      - kornia
+      - codecarbon
+      - tensorboardX

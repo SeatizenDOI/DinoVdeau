@@ -1,0 +1,5 @@
+__pycache__
+config.json
+*.ipynb
+*.pbs
+.ipynb_checkpoints
