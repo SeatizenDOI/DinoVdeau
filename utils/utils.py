@@ -12,7 +12,14 @@ def format_training_results_to_markdown(trainer_state):
     markdown_table = "Epoch | Validation Loss | Accuracy | F1 Macro | F1 Micro | Learning Rate\n"
     markdown_table += "--- | --- | --- | --- | --- | ---\n"
     
+    seen_epochs = set()
+
     for log in training_logs:
+        epoch = log.get("epoch", "N/A")
+        if epoch in seen_epochs:
+            continue  # Skip this log if the epoch has already been added
+        seen_epochs.add(epoch)
+
         epoch = log.get("epoch", "N/A")
         training_loss = log.get("loss", "N/A")
         validation_loss = log.get("eval_loss", "N/A")
@@ -75,7 +82,7 @@ def generate_model_card(data_paths, counts_path, output_dir):
 ---
 language:
 - eng
-license: apache-2.0
+license: wtfpl
 tags:
 - multilabel-image-classification
 - multilabel

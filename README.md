@@ -1,11 +1,11 @@
 <p align="center">
-  <a href="https://github.com/SeatizenDOI/multilabel-classification/graphs/contributors"><img src="https://img.shields.io/github/contributors/SeatizenDOI/multilabel-classification" alt="GitHub contributors"></a>
-  <a href="https://github.com/SeatizenDOI/multilabel-classification/network/members"><img src="https://img.shields.io/github/forks/SeatizenDOI/multilabel-classification" alt="GitHub forks"></a>
-  <a href="https://github.com/SeatizenDOI/multilabel-classification/issues"><img src="https://img.shields.io/github/issues/SeatizenDOI/multilabel-classification" alt="GitHub issues"></a>
-  <a href="https://github.com/SeatizenDOI/multilabel-classification/blob/master/LICENSE"><img src="https://img.shields.io/github/license/SeatizenDOI/multilabel-classification" alt="Licenses"></a>
-  <a href="https://github.com/SeatizenDOI/multilabel-classification/pulls"><img src="https://img.shields.io/github/issues-pr/SeatizenDOI/multilabel-classification" alt="GitHub pull requests"></a>
-  <a href="https://github.com/SeatizenDOI/multilabel-classification/stargazers"><img src="https://img.shields.io/github/stars/SeatizenDOI/multilabel-classification" alt="GitHub stars"></a>
-  <a href="https://github.com/SeatizenDOI/multilabel-classification/watchers"><img src="https://img.shields.io/github/watchers/SeatizenDOI/multilabel-classification" alt="GitHub watchers"></a>
+  <a href="https://github.com/SeatizenDOI/DinoVdeau/graphs/contributors"><img src="https://img.shields.io/github/contributors/SeatizenDOI/DinoVdeau" alt="GitHub contributors"></a>
+  <a href="https://github.com/SeatizenDOI/DinoVdeau/network/members"><img src="https://img.shields.io/github/forks/SeatizenDOI/DinoVdeau" alt="GitHub forks"></a>
+  <a href="https://github.com/SeatizenDOI/DinoVdeau/issues"><img src="https://img.shields.io/github/issues/SeatizenDOI/DinoVdeau" alt="GitHub issues"></a>
+  <a href="https://github.com/SeatizenDOI/DinoVdeau/blob/master/LICENSE"><img src="https://img.shields.io/github/license/SeatizenDOI/DinoVdeau" alt="Licenses"></a>
+  <a href="https://github.com/SeatizenDOI/DinoVdeau/pulls"><img src="https://img.shields.io/github/issues-pr/SeatizenDOI/DinoVdeau" alt="GitHub pull requests"></a>
+  <a href="https://github.com/SeatizenDOI/DinoVdeau/stargazers"><img src="https://img.shields.io/github/stars/SeatizenDOI/DinoVdeau" alt="GitHub stars"></a>
+  <a href="https://github.com/SeatizenDOI/DinoVdeau/watchers"><img src="https://img.shields.io/github/watchers/SeatizenDOI/DinoVdeau" alt="GitHub watchers"></a>
 </p>
 
 <div align="center">
