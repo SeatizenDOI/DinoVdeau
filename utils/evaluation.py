@@ -1,8 +1,7 @@
 from datetime import date
 
-def evaluate_and_save(trainer, ds, accelerator):
-    prepared_test_dataset = accelerator.prepare(ds["test"])
-    metrics = trainer.evaluate(prepared_test_dataset)
+def evaluate_and_save(trainer, ds):
+    metrics = trainer.evaluate(ds["test"])
 
     trainer.log_metrics("test", metrics)
     trainer.save_metrics("test", metrics)

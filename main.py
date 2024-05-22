@@ -1,5 +1,4 @@
 import torch
-from accelerate import Accelerator
 from config.arguments import get_args
 from data.data_loading import load_datasets
 from data.data_preprocessing import create_datasets
@@ -29,8 +28,6 @@ def main():
 
     with open("config.json", 'r') as file:
         config_env = json.load(file)
-
-    accelerator = Accelerator()
     
     # Clear GPU at beginning 
     torch.cuda.empty_cache()
@@ -38,7 +35,6 @@ def main():
     if torch.cuda.is_available():
         print("\n###################################################")
         print("Using GPU for training.")
-        print(f"Training is using {accelerator.state.num_processes} GPU(s).")
         print("###################################################\n")
     else:
         print("GPU not available, using CPU instead.")
@@ -57,57 +53,32 @@ def main():
     classes_nb = list(np.arange(len(classes_names)))
     id2label = {int(classes_nb[i]): classes_names[i] for i in range(len(classes_nb))}
     label2id = {v: k for k, v in id2label.items()}
-
+    # Set up dataset
     ds = create_datasets(config_env["ANNOTATION_PATH"], args, config_env["IMG_PATH"], output_dir)
-
+    # Set up model
     model = setup_model(args, classes_names, id2label, label2id)
-
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.initial_learning_rate, weight_decay=args.weight_decay)
-
     # Clear GPU cache before major allocation
     torch.cuda.empty_cache()
-
-    model, optimizer, ds["train"], ds["validation"] = accelerator.prepare(
-        model, optimizer, ds["train"], ds["validation"]
-    )
-
+    # Set up the Trainer object
     trainer = setup_trainer(args, model, ds, output_dir)
-
+    # Track carbon emissions
     tracker = EmissionsTracker(log_level="WARNING", save_to_file=False)
     tracker.start()
-    count = 0
-    max_count = 3
-    training_complete = 0
-
-    print("info : Training model...\n")
-
-    while count < max_count and training_complete == 0:
-        try:
-            train_results = trainer.train()
-            training_complete = 1
-        except RuntimeError as e:
-            count += 1
-            if "CUDA out of memory" in str(e):
-                print("CUDA out of memory error caught. Reducing batch size and trying again.")
-                args.batch_size = max(1, args.batch_size // 2)  # Reduce batch size
-                print(f"New batch size: {args.batch_size}")
-                trainer.args.per_device_train_batch_size = args.batch_size
-                trainer.args.per_device_eval_batch_size = args.batch_size
-                #train_results = trainer.train()
-            else:
-                raise e
+    # Start training
+    print("\ninfo : Training model...\n")
+    train_results = trainer.train()
 
     end_time = time.time()
     print(f"Total training time: {end_time - start_time} seconds")
     # Clear GPU cache after training
     torch.cuda.empty_cache()
-    print("info : Saving model...\n")
+    print("\ninfo : Saving model...\n")
     trainer.save_model()
     trainer.log_metrics("train", train_results.metrics)
     trainer.save_metrics("train", train_results.metrics)
     trainer.save_state()
-    print("info : Evaluating model on test set...\n")
-    evaluate_and_save(trainer, ds, accelerator)
+    print("\ninfo : Evaluating model on test set...\n")
+    evaluate_and_save(trainer, ds)
     emissions = tracker.stop()
 
     emissions_data = {

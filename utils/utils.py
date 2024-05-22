@@ -9,8 +9,8 @@ import numpy as np
 
 def format_training_results_to_markdown(trainer_state):
     training_logs = trainer_state.get("log_history", [])
-    markdown_table = "Epoch | Training Loss | Validation Loss | Validation Accuracy\n"
-    markdown_table += "--- | --- | --- | ---\n"
+    markdown_table = "Epoch | Validation Loss | Accuracy | F1 Macro | F1 Micro | Learning Rate\n"
+    markdown_table += "--- | --- | --- | --- | --- | ---\n"
     
     for log in training_logs:
         epoch = log.get("epoch", "N/A")
@@ -18,9 +18,9 @@ def format_training_results_to_markdown(trainer_state):
         validation_loss = log.get("eval_loss", "N/A")
         validation_accuracy = log.get("eval_accuracy", "N/A")
         eval_f1_micro = log.get("eval_f1_micro", "N/A")
-        feval_f1_macro = log.get("eval_f1_macro", "N/A")
+        eval_f1_macro = log.get("eval_f1_macro", "N/A")
         learning_rate = log.get("learning_rate", "N/A")
-        markdown_table += f"{epoch} | {training_loss} | {validation_loss} | {validation_accuracy} | {eval_f1_micro} | {eval_f1_macro} | {learning_rate}\n"
+        markdown_table += f"{epoch} | {validation_loss} | {validation_accuracy} | {eval_f1_micro} | {eval_f1_macro} | {learning_rate}\n"
     
     return markdown_table
 
@@ -65,7 +65,7 @@ def generate_model_card(data_paths, counts_path, output_dir):
     eval_loss, f1_micro, f1_macro, roc_auc, accuracy = extract_test_results(test_results)
     markdown_counts = format_counts_to_markdown(counts_path)
     transforms_markdown = format_transforms_to_markdown(transforms)
-    if config.get('data_augmentation', True):
+    if config.get('data_augmentation') == False :
         transforms_markdown = "No augmentation"
     hyperparameters_markdown = format_hyperparameters_to_markdown(config)
     carbon_footprint_markdown = format_carbon_footprint_to_markdown(config)
@@ -98,6 +98,7 @@ DinoVd'eau is a fine-tuned version of [{model_name}](https://huggingface.co/{mod
 
 # Model description
 DinoVd'eau is a model built on top of dinov2 model for underwater multilabel image classification.The classification head is a combination of linear, ReLU, batch normalization, and dropout layers.
+\nThe source code for training the model can be found in this [Git repository](https://github.com/SeatizenDOI/DinoVdeau).
 
 - **Developed by:** [lombardata](https://huggingface.co/lombardata), credits to [César Leblanc](https://huggingface.co/CesarLeblanc) and [Victor Illien](https://huggingface.co/groderg)
 

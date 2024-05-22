@@ -56,7 +56,7 @@ def setup_trainer(args, model, ds, output_dir):
         remove_unused_columns=False,
         push_to_hub=True,
         report_to='tensorboard',
-        fp16=False,
+        fp16=True,
     )
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.initial_learning_rate, weight_decay=args.weight_decay)
