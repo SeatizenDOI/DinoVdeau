@@ -1,15 +1,16 @@
 name: dinovdeau_env
+channels:
+  - conda-forge
+  - defaults
 dependencies:
   - python=3.8
   - pip
   - pip:
-      - torch
-      - torchvision
-      - torchaudio
-      - transformers
-      - huggingface_hub,
-      - accelerate
-      - datasets
+      - pandas
       - kornia
+      - datasets
+      - transformers
+      - scikit-learn
       - codecarbon
       - tensorboardX
+      - accelerate
