@@ -10,7 +10,7 @@
 
 <div align="center">
   <img src="images/DinoVd_eau_architecture.png" alt="Project logo" width="700">
-  <p align="center">This repository contains all necessary components for training and evaluating DinoVd'eau model, a deep learning model fine-tuned for underwater multilabel image classification. It leverages the dinov2 architecture and is customized for high precision in identifying diverse marine species.</p>
+  <p align="center">A classification framework to enhance underwater computer vision models.</p>
   <a href="https://github.com/SeatizenDOI/DinoVdeau">View framework</a>
   ·
   <a href="https://github.com/SeatizenDOI/DinoVdeau/issues">Report Bug</a>
@@ -24,6 +24,9 @@
 This repository contains all necessary components for training and evaluating DinoVd'eau model, a deep learning model fine-tuned for underwater multilabel image classification. It leverages the dinov2 architecture and is customized for high precision in identifying diverse marine species.
 
 A demo of the model can be found <a href="https://huggingface.co/spaces/lombardata/Victor_DinoVdEau_Image_Classification">here</a>.
+
+It is a slightly adapted version of the original [DINOv2](https://arxiv.org/abs/2304.07193), GitHub [repository](https://github.com/facebookresearch/dinov2/).
+
 
 ## Project Structure
 
@@ -111,3 +114,26 @@ Contributions are welcome! To contribute, please follow these steps:
 ## License
 
 This framework is distributed under the wtfpl license. See `LICENSE.txt` for more information.
+
+## Citing DinoVd'eau
+
+If you find this repository useful, please consider giving a star :star: and citation :fish::
+
+```
+@article{XXX,
+  title={YYY},
+  author={Contini, Matteo},
+  journal={ZZZ},
+  year={2050}
+}
+```
+
+
+```
+@misc{oquab2023dinov2,
+  title={DINOv2: Learning Robust Visual Features without Supervision},
+  author={Oquab, Maxime and Darcet, Timothée and Moutakanni, Theo and Vo, Huy V. and Szafraniec, Marc and Khalidov, Vasil and Fernandez, Pierre and Haziza, Daniel and Massa, Francisco and El-Nouby, Alaaeldin and Howes, Russell and Huang, Po-Yao and Xu, Hu and Sharma, Vasu and Li, Shang-Wen and Galuba, Wojciech and Rabbat, Mike and Assran, Mido and Ballas, Nicolas and Synnaeve, Gabriel and Misra, Ishan and Jegou, Herve and Mairal, Julien and Labatut, Patrick and Joulin, Armand and Bojanowski, Piotr},
+  journal={arXiv:2304.07193},
+  year={2023}
+}
+```
