@@ -78,6 +78,9 @@ def main():
     count = 0
     max_count = 3
     training_complete = 0
+
+    print("info : Training model...\n")
+
     while count < max_count and training_complete == 0:
         try:
             train_results = trainer.train()
@@ -94,16 +97,16 @@ def main():
             else:
                 raise e
 
-    # print("after training ", print_gpu_memory())
-
+    end_time = time.time()
+    print(f"Total training time: {end_time - start_time} seconds")
     # Clear GPU cache after training
     torch.cuda.empty_cache()
-    # print("after emptying GPU cache ", print_gpu_memory())
-
+    print("info : Saving model...\n")
     trainer.save_model()
     trainer.log_metrics("train", train_results.metrics)
     trainer.save_metrics("train", train_results.metrics)
     trainer.save_state()
+    print("info : Evaluating model on test set...\n")
     evaluate_and_save(trainer, ds, accelerator)
     emissions = tracker.stop()
 
@@ -141,10 +144,9 @@ def main():
         os.path.join(output_dir, 'config.json'),
         os.path.join(output_dir, 'transforms.json')
     ]
-
+    print("info : Generating model card...\n")
     generate_model_card(data_paths, counts_path, output_dir)
-    end_time = time.time()
-    print(f"Total training time: {end_time - start_time} seconds")
+
 
     hf_api = HfApi()
     token = HfFolder.get_token()

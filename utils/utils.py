@@ -18,7 +18,7 @@ def format_training_results_to_markdown(trainer_state):
         validation_loss = log.get("eval_loss", "N/A")
         validation_accuracy = log.get("eval_accuracy", "N/A")
         eval_f1_micro = log.get("eval_f1_micro", "N/A")
-        eval_f1_macro = log.get("eval_f1_macro", "N/A")
+        feval_f1_macro = log.get("eval_f1_macro", "N/A")
         learning_rate = log.get("learning_rate", "N/A")
         markdown_table += f"{epoch} | {training_loss} | {validation_loss} | {validation_accuracy} | {eval_f1_micro} | {eval_f1_macro} | {learning_rate}\n"
     
