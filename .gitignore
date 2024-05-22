@@ -4,3 +4,5 @@ config.json
 *.pbs
 .ipynb_checkpoints
 *prova*
+output.txt
+error.txt
