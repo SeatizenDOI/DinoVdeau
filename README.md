@@ -63,17 +63,26 @@ This section lists the key frameworks and libraries used to create the models in
 
 To ensure a consistent environment for all users, this project uses a Conda environment defined in a `requirements.yml` file. Follow these steps to set up your environment:
 
-1. **Install Conda:** If you do not have Conda installed, download and install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/products/distribution).
+1: **Clone the Repository** : First, clone the `DinoVd'eau` repository
+```bash
+git clone https://github.com/SeatizenDOI/DinoVdeau.git
+cd DinoVdeau
+```
 
-2. **Create the Conda Environment:** Navigate to the root of the project directory and run the following command to create a new environment from the `requirements.yml` file:
-   ```bash
-   conda env create -f requirements.yml
-   ```
+2: **Create and Activate Conda Environment** : Next, create a Conda environment using the `requirements.yml` file and activate it
+```bash
+conda env create -f requirements.yml
+conda activate dinovdeau_env
+```
 
-3. **Activate the Environment:** Once the environment is created, activate it using:
-   ```bash
-   conda activate gpu_env3
-   ```
+3: **Install PyTorch** : Finally, install PyTorch. It is recommended to install PyTorch with CUDA support for optimal performance. Follow the instructions [here](https://pytorch.org/get-started/locally/) to install PyTorch with the appropriate options for your system.
+
+Here is an example command to install PyTorch with CUDA support:
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+By following these steps, you will set up the necessary environment to work with `DinoVd'eau`.
 
 ## Usage
 
