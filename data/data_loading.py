@@ -21,9 +21,9 @@ def load_datasets(df_folder):
     val_df = pd.read_csv(val_df_path)
     test_df = pd.read_csv(test_df_path)
 
-    N = 50
-    train_df = train_df.iloc[:N]
-    val_df = val_df.iloc[:N]
-    test_df = test_df.iloc[:N]
+    #N = 50
+    #train_df = train_df.iloc[:N]
+    #val_df = val_df.iloc[:N]
+    #test_df = test_df.iloc[:N]
     
     return train_df, val_df, test_df
