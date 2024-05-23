@@ -54,13 +54,13 @@ def main():
     id2label = {int(classes_nb[i]): classes_names[i] for i in range(len(classes_nb))}
     label2id = {v: k for k, v in id2label.items()}
     # Set up dataset
-    ds = create_datasets(config_env["ANNOTATION_PATH"], args, config_env["IMG_PATH"], output_dir)
+    ds, dummy_feature_extractor = create_datasets(config_env["ANNOTATION_PATH"], args, config_env["IMG_PATH"], output_dir)
     # Set up model
     model = setup_model(args, classes_names, id2label, label2id)
     # Clear GPU cache before major allocation
     torch.cuda.empty_cache()
     # Set up the Trainer object
-    trainer = setup_trainer(args, model, ds, output_dir)
+    trainer = setup_trainer(args, model, ds, dummy_feature_extractor, output_dir)
     # Track carbon emissions
     tracker = EmissionsTracker(log_level="WARNING", save_to_file=False)
     tracker.start()

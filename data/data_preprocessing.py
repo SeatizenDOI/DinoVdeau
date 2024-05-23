@@ -32,7 +32,7 @@ def create_datasets(df_folder, args, img_path, output_dir):
         "test": ds_test
     })    
 
-    feature_extractor = AutoImageProcessor.from_pretrained(
+    dummy_feature_extractor = AutoImageProcessor.from_pretrained(
         args.model_name,
         size={"height": args.image_size, "width": args.image_size},
         do_center_crop=False, 
@@ -58,13 +58,13 @@ def create_datasets(df_folder, args, img_path, output_dir):
         K.augmentation.RandomVerticalFlip(p=0.25),
         K.augmentation.ColorJiggle(p=0.25),
         K.augmentation.RandomPerspective(p=0.25),
-        K.augmentation.Normalize(mean=feature_extractor.image_mean, std=feature_extractor.image_std),
+        K.augmentation.Normalize(mean=dummy_feature_extractor.image_mean, std=dummy_feature_extractor.image_std),
     )
 
     val_transforms = nn.Sequential(
         PreProcess(),
         K.augmentation.Resize(size=(args.image_size, args.image_size)),
-        K.augmentation.Normalize(mean=feature_extractor.image_mean, std=feature_extractor.image_std),
+        K.augmentation.Normalize(mean=dummy_feature_extractor.image_mean, std=dummy_feature_extractor.image_std),
     )   
 
     def transform_to_dict(transforms):
@@ -105,4 +105,4 @@ def create_datasets(df_folder, args, img_path, output_dir):
     prepared_ds["validation"] = ds["validation"].with_transform(preprocess_val)
     prepared_ds["test"] = ds["test"].with_transform(preprocess_val)
     
-    return prepared_ds
+    return prepared_ds, dummy_feature_extractor

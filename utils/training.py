@@ -38,7 +38,7 @@ def compute_metrics(p: EvalPrediction):
     result = multi_label_metrics(preds, p.label_ids)
     return result
     
-def setup_trainer(args, model, ds, output_dir):
+def setup_trainer(args, model, ds, dummy_feature_extractor, output_dir):
     training_args = TrainingArguments(
         output_dir=output_dir,  
         per_device_train_batch_size=args.batch_size,
@@ -69,6 +69,7 @@ def setup_trainer(args, model, ds, output_dir):
     data_collator=collate_fn,
     train_dataset=ds["train"],
     eval_dataset=ds["validation"],
+    tokenizer = dummy_feature_extractor,
     callbacks=[early_stop],
     compute_metrics=compute_metrics,
     optimizers=(optimizer, lr_scheduler)
