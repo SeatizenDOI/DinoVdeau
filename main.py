@@ -13,6 +13,9 @@ from datetime import date
 import time
 import numpy as np
 import json
+from PIL import ImageFile as PILImageFile
+
+PILImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def bytes_to_gb(memory_in_bytes):
     return memory_in_bytes / (1024 ** 3)
@@ -41,11 +44,11 @@ def main():
 
     today = date.today().strftime("%Y_%m_%d")
     start_time = time.time()
-    session_name = f"{args.model_name.replace('facebook/', '')}-{today}-drone_batch-size{args.batch_size}_epochs{args.num_train_epochs}_{'freeze' if args.freeze_flag else 'unfreeze'}"
+    session_name = f"{args.model_name.replace('facebook/', '')}-{today}-_batch-size{args.batch_size}_epochs{args.num_train_epochs}_{'freeze' if args.freeze_flag else 'unfreeze'}"
     output_dir = os.path.join(config_env["MODEL_PATH"], session_name)
 
     HfFolder.save_token(config_env["HUGGINGFACE_TOKEN"])
-    _ = HFSummaryWriter(repo_id=session_name, logdir=os.path.join(output_dir, "runs"), commit_every=5)
+    logger = HFSummaryWriter(repo_id=session_name, logdir = os.path.join(output_dir, "runs"), commit_every=5)
 
     # Load dataset
     train_df, val_df, test_df = load_datasets(config_env["ANNOTATION_PATH"])
