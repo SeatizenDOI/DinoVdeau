@@ -43,8 +43,10 @@ def main():
         print("GPU not available, using CPU instead.")
 
     today = date.today().strftime("%Y_%m_%d")
-    start_time = time.time()
-    session_name = f"{args.model_name.replace('facebook/dinov2', 'DinoVdeau')}-{today}-prova_batch-size{args.batch_size}_epochs{args.epochs}_{'freeze' if args.freeze_flag else 'unfreeze'}"
+    start_time = time.time()        
+    session_name = f"{args.model_name.replace('facebook/dinov2', 'DinoVdeau')}-{today}-batch-size{args.batch_size}_epochs{args.epochs}_{'freeze' if args.freeze_flag else 'unfreeze'}"
+    if args.test_data_flag :
+        session_name = session_name.replace("batch-size", "prova_batch-size")
     output_dir = os.path.join(config_env["MODEL_PATH"], session_name)
 
     HfFolder.save_token(config_env["HUGGINGFACE_TOKEN"])
@@ -75,9 +77,9 @@ def main():
     print(f"Total training time: {end_time - start_time} seconds")
     # Clear GPU cache after training
     torch.cuda.empty_cache()
-    print("\ninfo : Saving model...\n")
-    trainer.save_model()
-    trainer.log_metrics("train", train_results.metrics)
+    #print("\ninfo : Saving model...\n")
+    #trainer.save_model()
+    #trainer.log_metrics("train", train_results.metrics)
     trainer.save_metrics("train", train_results.metrics)
     trainer.save_state()
     print("\ninfo : Evaluating model on test set...\n")
@@ -135,7 +137,7 @@ def main():
         print(f"Error creating repository: {e}")
         raise
 
-    all_files = [f for f in os.listdir(output_dir) if os.path.isfile(os.path.join(output_dir, f)) and f != "model.safetensors"]
+    all_files = [f for f in os.listdir(output_dir) if os.path.isfile(os.path.join(output_dir, f))]# and f != "model.safetensors"]
 
     for filename in all_files:
         file_path = os.path.join(output_dir, filename)

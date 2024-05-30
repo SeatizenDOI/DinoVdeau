@@ -20,8 +20,6 @@ def format_training_results_to_markdown(trainer_state):
         if epoch in seen_epochs:
             continue  # Skip this log if the epoch has already been added
         seen_epochs.add(epoch)
-
-        epoch = log.get("epoch", "N/A")
         training_loss = log.get("loss", "N/A")
         validation_loss = log.get("eval_loss", "N/A")
         validation_accuracy = log.get("eval_accuracy", "N/A")
