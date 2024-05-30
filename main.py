@@ -44,14 +44,14 @@ def main():
 
     today = date.today().strftime("%Y_%m_%d")
     start_time = time.time()
-    session_name = f"{args.model_name.replace('facebook/dinov2', 'DinoVdeau')}-{today}-batch-size{args.batch_size}_epochs{args.num_train_epochs}_{'freeze' if args.freeze_flag else 'unfreeze'}"
+    session_name = f"{args.model_name.replace('facebook/dinov2', 'DinoVdeau')}-{today}-prova_batch-size{args.batch_size}_epochs{args.epochs}_{'freeze' if args.freeze_flag else 'unfreeze'}"
     output_dir = os.path.join(config_env["MODEL_PATH"], session_name)
 
     HfFolder.save_token(config_env["HUGGINGFACE_TOKEN"])
     logger = HFSummaryWriter(repo_id=session_name, logdir = os.path.join(output_dir, "runs"), commit_every=5)
 
     # Load dataset
-    train_df, val_df, test_df = load_datasets(config_env["ANNOTATION_PATH"])
+    train_df, val_df, test_df = load_datasets(config_env["ANNOTATION_PATH"], args.test_data_flag)
     classes_names = train_df.columns[1:].tolist()
     classes_nb = list(np.arange(len(classes_names)))
     id2label = {int(classes_nb[i]): classes_names[i] for i in range(len(classes_nb))}
@@ -104,7 +104,7 @@ def main():
         'early_stopping_patience': args.early_stopping_patience,
         'freeze_encoder': args.freeze_flag,
         'data_augmentation':args.data_aug_flag,
-        'num_epochs': args.num_train_epochs,
+        'num_epochs': args.epochs,
         'emissions_data': emissions_data
     }
     save_hyperparameters_to_config(output_dir, hyperparameters)

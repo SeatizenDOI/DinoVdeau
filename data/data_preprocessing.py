@@ -20,7 +20,7 @@ def create_datasets(df_folder, args, img_path, output_dir):
         labels = df.drop(columns=[img_col_name]).values.tolist()
         return {"image": img_paths, "label": labels, "image_name": img_names}
     
-    train_df, val_df, test_df = load_datasets(df_folder)
+    train_df, val_df, test_df = load_datasets(df_folder, args.test_data_flag)
     train_data = load_and_preprocess_df(train_df)
     val_data = load_and_preprocess_df(val_df)
     test_data = load_and_preprocess_df(test_df)

@@ -43,7 +43,7 @@ def setup_trainer(args, model, ds, dummy_feature_extractor, output_dir):
         output_dir=output_dir,  
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=args.batch_size,
-        num_train_epochs=args.num_train_epochs,
+        num_train_epochs=args.epochs,
         learning_rate=args.initial_learning_rate,
         weight_decay=args.weight_decay,
         load_best_model_at_end=True,

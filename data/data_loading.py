@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-def load_datasets(df_folder):
+def load_datasets(df_folder, test_data_flag):
     train_df_path, val_df_path, test_df_path = None, None, None
 
     for filename in os.listdir(df_folder):
@@ -21,9 +21,11 @@ def load_datasets(df_folder):
     val_df = pd.read_csv(val_df_path)
     test_df = pd.read_csv(test_df_path)
 
-    #N = 50
-    #train_df = train_df.iloc[:N]
-    #val_df = val_df.iloc[:N]
-    #test_df = test_df.iloc[:N]
+    if test_data_flag :
+        print("info : Working on a small dataset for test purposes...\n")
+        N = 50
+        train_df = train_df.iloc[:N]
+        val_df = val_df.iloc[:N]
+        test_df = test_df.iloc[:N]
     
     return train_df, val_df, test_df

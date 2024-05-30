@@ -15,7 +15,7 @@ def get_args():
     parser = argparse.ArgumentParser(description="DINOv2 Image Classification Training Script")
     parser.add_argument('--image_size', type=int, default=518, help='Image size for both dimensions')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for training and evaluation')
-    parser.add_argument('--num_train_epochs', type=int, default=150, help='Number of training epochs')
+    parser.add_argument('--epochs', type=int, default=150, help='Number of training epochs')
     parser.add_argument('--initial_learning_rate', type=float, default=0.001, help='Initial learning rate')
     parser.add_argument('--weight_decay', type=float, default=0.0001, help='Weight decay for the optimizer')
     parser.add_argument('--early_stopping_patience', type=int, default=10, help='Early stopping patience')
@@ -26,6 +26,7 @@ def get_args():
     parser.add_argument('--freeze_flag', type=str2bool, default=True, help='Flag to freeze model backbone, set to False to disable freezing')
     # data_aug_flag to be True by default and explicitly settable to False
     parser.add_argument('--data_aug_flag', type=str2bool, default=True, help='Flag to enable data augmentation, set to False to disable it')
+    parser.add_argument('--test_data_flag', type=str2bool, default=False, help='Flag to test the model on a small subset of data, set to True to enable it')
 
 
     # Check if running in an interactive environment and adjust accordingly
