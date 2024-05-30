@@ -16,6 +16,7 @@ def format_training_results_to_markdown(trainer_state):
 
     for log in training_logs:
         epoch = log.get("epoch", "N/A")
+        epoch = int(epoch)  # Ensure epoch is displayed as an integer
         if epoch in seen_epochs:
             continue  # Skip this log if the epoch has already been added
         seen_epochs.add(epoch)
