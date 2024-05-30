@@ -3,11 +3,14 @@ import json
 import torch
 import torch.nn as nn
 import kornia as K
-from PIL import Image as PILImage
 from datasets import Dataset, DatasetDict, Image as DatasetsImage
 from transformers import AutoImageProcessor
 from data.data_loading import load_datasets
 import numpy as np
+from PIL import Image as PILImage
+from PIL import ImageFile as PILImageFile
+
+PILImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def create_datasets(df_folder, args, img_path, output_dir):
     def load_and_preprocess_df(df, img_col_name="FileName"):
