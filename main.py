@@ -44,7 +44,7 @@ def main():
 
     today = date.today().strftime("%Y_%m_%d")
     start_time = time.time()
-    session_name = f"{args.model_name.replace('facebook/', '')}-{today}-_batch-size{args.batch_size}_epochs{args.num_train_epochs}_{'freeze' if args.freeze_flag else 'unfreeze'}"
+    session_name = f"{args.model_name.replace('facebook/dinov2', 'DinoVdeau')}-{today}-batch-size{args.batch_size}_epochs{args.num_train_epochs}_{'freeze' if args.freeze_flag else 'unfreeze'}"
     output_dir = os.path.join(config_env["MODEL_PATH"], session_name)
 
     HfFolder.save_token(config_env["HUGGINGFACE_TOKEN"])
