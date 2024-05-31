@@ -146,3 +146,6 @@ If you find this repository useful, please consider giving a star :star: and cit
   year={2023}
 }
 ```
+<div align="center">
+  <img src="https://github.com/SeatizenDOI/.github/blob/main/images/logo_partenaire.png?raw=True" alt="Partenaire logo" width="700">
+</div>
