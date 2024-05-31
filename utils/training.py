@@ -1,9 +1,9 @@
-import torch
-from transformers import TrainingArguments, Trainer, EarlyStoppingCallback, EvalPrediction
-from typing import Callable, Dict, Optional, Tuple
-import numpy as np
-from sklearn.metrics import f1_score, roc_auc_score, accuracy_score
 import os
+import torch
+import numpy as np
+from typing import Dict
+from sklearn.metrics import f1_score, roc_auc_score, accuracy_score
+from transformers import TrainingArguments, Trainer, EarlyStoppingCallback, EvalPrediction
 
 # add learning rate to the training output
 class MyTrainer(Trainer):

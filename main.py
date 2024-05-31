@@ -1,4 +1,15 @@
+import os
+import json
+import time
 import torch
+import numpy as np
+from datetime import date
+from codecarbon import EmissionsTracker
+from huggingface_hub import HfApi, HfFolder, HFSummaryWriter
+
+from PIL import ImageFile as PILImageFile
+PILImageFile.LOAD_TRUNCATED_IMAGES = True
+
 from config.arguments import get_args
 from data.data_loading import load_datasets
 from data.data_preprocessing import create_datasets
@@ -6,16 +17,7 @@ from model.model_setup import setup_model
 from utils.training import setup_trainer
 from utils.evaluation import evaluate_and_save
 from utils.utils import generate_model_card, save_hyperparameters_to_config
-from codecarbon import EmissionsTracker
-from huggingface_hub import HfApi, HfFolder, HFSummaryWriter
-import os
-from datetime import date
-import time
-import numpy as np
-import json
-from PIL import ImageFile as PILImageFile
 
-PILImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def bytes_to_gb(memory_in_bytes):
     return memory_in_bytes / (1024 ** 3)
