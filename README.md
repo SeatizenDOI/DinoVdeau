@@ -96,7 +96,7 @@ Where `[OPTIONS]` can include:
 
 - `--image_size`: Specify the dimensions of input images.
 - `--batch_size`: Define the batch size for training and validation.
-- `--num_train_epochs`: Set the number of epochs for training.
+- `--epochs`: Set the number of epochs for training.
 - `--initial_learning_rate`: Initial learning rate for optimization.
 - `--weight_decay`: Weight decay factor for the optimizer.
 - `--early_stopping_patience`: Early stopping criterion based on validation loss.
@@ -105,6 +105,7 @@ Where `[OPTIONS]` can include:
 - `--model_name`: Path or identifier for the model to be used.
 - `--freeze_flag`: Boolean to indicate if the model backbone should be frozen.
 - `--data_aug_flag`: Boolean to enable or disable data augmentation.
+- `--test_data_flag`: Boolean to test the workflow on a small subset of data, set to True to enable it.
 
 ## Team
 
