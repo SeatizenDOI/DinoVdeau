@@ -73,9 +73,10 @@ def main():
     torch.cuda.empty_cache()
     # Set up the Trainer object
     trainer = setup_trainer(args, model, ds, dummy_feature_extractor, output_dir)
-    # Track carbon emissions
-    tracker = EmissionsTracker(log_level="WARNING", save_to_file=False)
-    tracker.start()
+    if args.enable_web:
+        # Track carbon emissions
+        tracker = EmissionsTracker(log_level="WARNING", save_to_file=False)
+        tracker.start()
     # Start training
     print("\ninfo : Training model...\n")
     train_results = trainer.train()
@@ -91,31 +92,52 @@ def main():
     trainer.save_state()
     print("\ninfo : Evaluating model on test set...\n")
     evaluate_and_save(args, trainer, ds)
-    emissions = tracker.stop()
 
-    emissions_data = {
-        'emissions': emissions,
-        'source': "Code Carbon",
-        'training_type': "fine-tuning",
-        'geographical_location': "Brest, France",
-        'hardware_used': "NVIDIA Tesla V100 PCIe 32 Go"
-    }
+    if args.enable_web:
 
-    hyperparameters = {
-        'initial_learning_rate': args.initial_learning_rate,
-        'train_batch_size': args.batch_size,
-        'eval_batch_size': args.batch_size,
-        'optimizer': {'type': 'Adam'},
-        'lr_scheduler_type': {'type': 'ReduceLROnPlateau'},
-        'patience_lr_scheduler': args.patience_lr_scheduler,
-        'factor_lr_scheduler': args.factor_lr_scheduler,
-        'weight_decay': args.weight_decay,
-        'early_stopping_patience': args.early_stopping_patience,
-        'freeze_encoder': args.freeze_flag,
-        'data_augmentation':args.data_aug_flag,
-        'num_epochs': args.epochs,
-        'emissions_data': emissions_data
-    }
+        emissions = tracker.stop()
+
+        emissions_data = {
+            'emissions': emissions,
+            'source': "Code Carbon",
+            'training_type': "fine-tuning",
+            'geographical_location': "Brest, France",
+            'hardware_used': "NVIDIA Tesla V100 PCIe 32 Go"
+        }
+
+        hyperparameters = {
+            'initial_learning_rate': args.initial_learning_rate,
+            'train_batch_size': args.batch_size,
+            'eval_batch_size': args.batch_size,
+            'optimizer': {'type': 'Adam'},
+            'lr_scheduler_type': {'type': 'ReduceLROnPlateau'},
+            'patience_lr_scheduler': args.patience_lr_scheduler,
+            'factor_lr_scheduler': args.factor_lr_scheduler,
+            'weight_decay': args.weight_decay,
+            'early_stopping_patience': args.early_stopping_patience,
+            'freeze_encoder': args.freeze_flag,
+            'data_augmentation':args.data_aug_flag,
+            'num_epochs': args.epochs,
+            'emissions_data': emissions_data
+        }
+
+    else :
+
+        hyperparameters = {
+            'initial_learning_rate': args.initial_learning_rate,
+            'train_batch_size': args.batch_size,
+            'eval_batch_size': args.batch_size,
+            'optimizer': {'type': 'Adam'},
+            'lr_scheduler_type': {'type': 'ReduceLROnPlateau'},
+            'patience_lr_scheduler': args.patience_lr_scheduler,
+            'factor_lr_scheduler': args.factor_lr_scheduler,
+            'weight_decay': args.weight_decay,
+            'early_stopping_patience': args.early_stopping_patience,
+            'freeze_encoder': args.freeze_flag,
+            'data_augmentation':args.data_aug_flag,
+            'num_epochs': args.epochs
+        }
+        
     save_hyperparameters_to_config(output_dir, hyperparameters)
 
     counts_path = os.path.join(config_env["ANNOTATION_PATH"], "count_df.csv")
