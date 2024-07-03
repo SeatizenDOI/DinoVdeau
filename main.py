@@ -6,7 +6,6 @@ import numpy as np
 from datetime import date
 from codecarbon import EmissionsTracker
 from huggingface_hub import HfApi, HfFolder, HFSummaryWriter
-
 from PIL import ImageFile as PILImageFile
 PILImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -50,9 +49,15 @@ def main():
     if args.test_data_flag :
         session_name = session_name.replace("batch-size", "prova_batch-size")
     output_dir = os.path.join(config_env["MODEL_PATH"], session_name)
-
-    HfFolder.save_token(config_env["HUGGINGFACE_TOKEN"])
-    logger = HFSummaryWriter(repo_id=session_name, logdir = os.path.join(output_dir, "runs"), commit_every=5)
+    if not os.path.exists(output_dir):
+        # Safely create the output directory
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+        except FileExistsError:
+            pass
+    if args.enable_web:
+        HfFolder.save_token(config_env["HUGGINGFACE_TOKEN"])
+        logger = HFSummaryWriter(repo_id=session_name, logdir = os.path.join(output_dir, "runs"), commit_every=5)
 
     # Load dataset
     train_df, val_df, test_df = load_datasets(config_env["ANNOTATION_PATH"], args.test_data_flag)
@@ -85,7 +90,7 @@ def main():
     trainer.save_metrics("train", train_results.metrics)
     trainer.save_state()
     print("\ninfo : Evaluating model on test set...\n")
-    evaluate_and_save(trainer, ds)
+    evaluate_and_save(args, trainer, ds)
     emissions = tracker.stop()
 
     emissions_data = {
@@ -125,33 +130,32 @@ def main():
     print("info : Generating model card...\n")
     generate_model_card(data_paths, counts_path, output_dir)
 
+    if args.enable_web:
+        hf_api = HfApi()
+        token = HfFolder.get_token()
+        repo_name = session_name
+        username = "lombardata"
+        repo_id = f"{username}/{repo_name}"
+        try:
+            repo_url = hf_api.create_repo(token=token, repo_id=repo_id, private=False, exist_ok=True)
+            print(f"Repository URL: {repo_url}")
+        except Exception as e:
+            print(f"Error creating repository: {e}")
+            raise
 
-    hf_api = HfApi()
-    token = HfFolder.get_token()
+        all_files = [f for f in os.listdir(output_dir) if os.path.isfile(os.path.join(output_dir, f)) and f != "model.safetensors"]
 
-    repo_name = session_name
-    username = "lombardata"
-    repo_id = f"{username}/{repo_name}"
-    try:
-        repo_url = hf_api.create_repo(token=token, repo_id=repo_id, private=False, exist_ok=True)
-        print(f"Repository URL: {repo_url}")
-    except Exception as e:
-        print(f"Error creating repository: {e}")
-        raise
+        for filename in all_files:
+            file_path = os.path.join(output_dir, filename)
+            hf_api.upload_file(
+                token=token,
+                path_or_fileobj=file_path,
+                path_in_repo=filename,
+                repo_id=repo_id,
+                commit_message=f"Upload {filename}"
+            )
 
-    all_files = [f for f in os.listdir(output_dir) if os.path.isfile(os.path.join(output_dir, f))]# and f != "model.safetensors"]
-
-    for filename in all_files:
-        file_path = os.path.join(output_dir, filename)
-        hf_api.upload_file(
-            token=token,
-            path_or_fileobj=file_path,
-            path_in_repo=filename,
-            repo_id=repo_id,
-            commit_message=f"Upload {filename}"
-        )
-
-    print(f"All files successfully uploaded to the Hub: {repo_url}")
+        print(f"All files successfully uploaded to the Hub: {repo_url}")
 
 if __name__ == "__main__":
     main()

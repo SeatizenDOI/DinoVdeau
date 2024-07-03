@@ -54,7 +54,7 @@ def setup_trainer(args, model, ds, dummy_feature_extractor, output_dir):
         greater_is_better=False,
         save_total_limit=1,
         remove_unused_columns=False,
-        push_to_hub=True,
+        push_to_hub=args.enable_web,
         report_to='tensorboard',
         fp16=True,
     )

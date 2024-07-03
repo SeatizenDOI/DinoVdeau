@@ -27,7 +27,7 @@ def get_args():
     # data_aug_flag to be True by default and explicitly settable to False
     parser.add_argument('--data_aug_flag', type=str2bool, default=True, help='Flag to enable data augmentation, set to False to disable it')
     parser.add_argument('--test_data_flag', type=str2bool, default=False, help='Flag to test the model on a small subset of data, set to True to enable it')
-
+    parser.add_argument('--enable_web', type=str2bool, default=True, help='Flag to enable the connection to the web, set to False to disable it')
 
     # Check if running in an interactive environment and adjust accordingly
     if any("jupyter" in arg for arg in sys.argv):

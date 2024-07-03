@@ -1,5 +1,6 @@
 import torch.nn as nn
 from transformers import Dinov2Config, Dinov2ForImageClassification
+import json
 
 def create_head(num_features, number_classes, dropout_prob=0.5, activation_func=nn.ReLU):
     features_lst = [num_features, num_features // 2, num_features // 4]
@@ -27,9 +28,15 @@ def setup_model(args, label_names, id2label, label2id):
         problem_type="multi_label_classification",
         image_size=args.image_size
     )
-    
-    model = NewheadDinov2ForImageClassification(model_config)
-    model = model.from_pretrained(args.model_name, config=model_config, ignore_mismatched_sizes=True)
+    if args.enable_web:
+        model = NewheadDinov2ForImageClassification(model_config)
+        model = model.from_pretrained(args.model_name, config=model_config, ignore_mismatched_sizes=True)
+    else:
+        # Load the model from a local directory if web is disabled
+        with open("config.json", 'r') as file:
+            config_env = json.load(file)
+        model = NewheadDinov2ForImageClassification(model_config)
+        model = model.from_pretrained(config_env["LOCAL_MODEL_PATH"], config=model_config, ignore_mismatched_sizes=True)
 
     if args.freeze_flag:
         for name, param in model.named_parameters():
