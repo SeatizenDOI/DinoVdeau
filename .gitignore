@@ -6,3 +6,6 @@ config.json
 *prova*
 output.txt
 error.txt
+*.sh
+*.out
+*.err
