@@ -32,7 +32,6 @@ def main():
 
     with open("config.json", 'r') as file:
         config_env = json.load(file)
-    
     # Clear GPU at beginning 
     torch.cuda.empty_cache()
 
@@ -49,6 +48,19 @@ def main():
     if args.test_data_flag :
         session_name = session_name.replace("batch-size", "prova_batch-size")
     output_dir = os.path.join(config_env["MODEL_PATH"], session_name)
+
+    # Resume training logic
+    resume_from_checkpoint = None
+    if args.resume:
+        session_name = config_env["MODEL_NAME"]
+        output_dir = os.path.join(config_env["MODEL_PATH"], session_name)
+        checkpoints = [os.path.join(output_dir, f) for f in os.listdir(output_dir) if f.startswith('checkpoint')]
+        if checkpoints:
+            latest_checkpoint = max(checkpoints, key=os.path.getctime)
+            resume_from_checkpoint = latest_checkpoint
+            
+    print("\ninfo : Model name is \n", session_name)
+
     if not os.path.exists(output_dir):
         # Safely create the output directory
         try:
@@ -79,7 +91,11 @@ def main():
         tracker.start()
     # Start training
     print("\ninfo : Training model...\n")
-    train_results = trainer.train()
+    if args.resume:
+        print("\ninfo : Resuming training from checkpoint \n", latest_checkpoint)
+        train_results =  trainer.train(resume_from_checkpoint=resume_from_checkpoint)
+    else :
+        train_results = trainer.train()
 
     end_time = time.time()
     print(f"Total training time: {end_time - start_time} seconds")

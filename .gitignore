@@ -9,3 +9,4 @@ error.txt
 *.sh
 *.out
 *.err
+resume_training.*

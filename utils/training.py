@@ -57,6 +57,7 @@ def setup_trainer(args, model, ds, dummy_feature_extractor, output_dir):
         push_to_hub=args.enable_web,
         report_to='tensorboard',
         fp16=True,
+        
     )
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.initial_learning_rate, weight_decay=args.weight_decay)
