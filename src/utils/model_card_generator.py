@@ -1,10 +1,10 @@
-import os
 import json
 import torch
 import datasets
 import tokenizers
-import pandas as pd
 import transformers
+import pandas as pd
+from pathlib import Path
 
 def format_training_results_to_markdown(trainer_state):
     training_logs = trainer_state.get("log_history", [])
@@ -37,43 +37,63 @@ def extract_test_results(test_results):
     accuracy = test_results.get('eval_accuracy', 0)
     return eval_loss, f1_micro, f1_macro, roc_auc, accuracy
 
-def save_hyperparameters_to_config(output_dir, hyperparameters):
-    config_path = os.path.join(output_dir, 'config.json')
-    if os.path.exists(config_path):
+def save_hyperparameters_to_config(output_dir: Path, args, emissions: float | None):
+
+    # Regroup and save hyperparameters
+    hyperparameters = {
+        'initial_learning_rate': args.initial_learning_rate,
+        'train_batch_size': args.batch_size,
+        'eval_batch_size': args.batch_size,
+        'optimizer': {'type': 'Adam'},
+        'lr_scheduler_type': {'type': 'ReduceLROnPlateau'},
+        'patience_lr_scheduler': args.patience_lr_scheduler,
+        'factor_lr_scheduler': args.factor_lr_scheduler,
+        'weight_decay': args.weight_decay,
+        'early_stopping_patience': args.early_stopping_patience,
+        'freeze_encoder': not(args.no_freeze),
+        'data_augmentation':not(args.no_data_aug),
+        'num_epochs': args.epochs
+    }
+
+    if emissions != None:
+        hyperparameters['emissions_data'] = {
+            'emissions': emissions,
+            'source': "Code Carbon",
+            'training_type': "fine-tuning",
+            'geographical_location': "Brest, France",
+            'hardware_used': "NVIDIA Tesla V100 PCIe 32 Go"
+        }
+    
+    # Load hyperparameters.
+    config_path, config = Path(output_dir, 'config.json'), {}
+    if Path.exists(config_path):
         with open(config_path, 'r') as file:
             config = json.load(file)
-    else:
-        config = {}
+
+    # Save hyperparameters.
     config.update(hyperparameters)
     with open(config_path, 'w') as file:
         json.dump(config, file, indent=4)
+
     print("Updated configuration saved to config.json")
 
-def generate_model_card(data_paths, counts_path, output_dir):
-    train_results_path, test_results_path, trainer_state_path, all_results_path, config_path, transforms_path = data_paths
+def generate_model_card(data_paths: list[Path], counts_path: Path, output_dir: Path):
 
-    with open(train_results_path, 'r') as file:
-        train_results = json.load(file)
-    with open(test_results_path, 'r') as file:
-        test_results = json.load(file)
-    with open(trainer_state_path, 'r') as file:
-        trainer_state = json.load(file)
-    with open(all_results_path, 'r') as file:
-        all_results = json.load(file)
-    with open(config_path, 'r') as file:
-        config = json.load(file)
-    with open(transforms_path, 'r') as file:
-        transforms = json.load(file)    
-    model_name = config.get('_name_or_path', 'Unknown model')  
+    data = {}
+    for data_path in data_paths:
+        with open(data_path, 'r') as file:
+            data[data_path.stem] = json.load(file)
+  
+    model_name = data["config"].get('_name_or_path', 'Unknown model')  
 
-    markdown_training_results = format_training_results_to_markdown(trainer_state)
-    eval_loss, f1_micro, f1_macro, roc_auc, accuracy = extract_test_results(test_results)
+    markdown_training_results = format_training_results_to_markdown(data["trainer_state"])
+    eval_loss, f1_micro, f1_macro, roc_auc, accuracy = extract_test_results(data["test_results"])
     markdown_counts = format_counts_to_markdown(counts_path)
-    transforms_markdown = format_transforms_to_markdown(transforms)
-    if config.get('data_augmentation') == False :
+    transforms_markdown = format_transforms_to_markdown(data["transforms"])
+    if data["config"].get('data_augmentation') == False :
         transforms_markdown = "No augmentation"
-    hyperparameters_markdown = format_hyperparameters_to_markdown(config)
-    carbon_footprint_markdown = format_carbon_footprint_to_markdown(config)
+    hyperparameters_markdown = format_hyperparameters_to_markdown(data["config"])
+    carbon_footprint_markdown = format_carbon_footprint_to_markdown(data["config"])
     framework_versions_markdown = format_framework_versions_to_markdown()  
 
     markdown_content = f"""
@@ -87,7 +107,7 @@ tags:
 - generated_from_trainer
 base_model: {model_name}
 model-index:
-- name: {os.path.basename(output_dir)}
+- name: {output_dir.name}
   results: []
 ---
 
@@ -144,7 +164,7 @@ Data were augmented using the following transformations :
 """
 
     output_filename = "README.md"
-    with open(os.path.join(output_dir, output_filename), 'w') as file:
+    with open(Path(output_dir, output_filename), 'w') as file:
         file.write(markdown_content)
 
     print(f"Model card generated and saved to {output_filename} in the directory {output_dir}")
