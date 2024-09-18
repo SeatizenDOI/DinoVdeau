@@ -22,7 +22,8 @@ def get_session_name_and_ouput_dir(args, config_env):
     model_size = args.model_name[args.model_name.find("-")+1:]
     freeze = 'unfreeze' if args.no_freeze else 'freeze'
     test_data = "prova_" if args.test_data else ""
-    session_name = f"{args.new_model_name}-{model_size}-{today}-{test_data}batch-size{args.batch_size}_epochs{args.epochs}_{freeze}"
+    training_type = "_monolabel" if args.training_type == "monolabel" else ""
+    session_name = f"{args.new_model_name}-{model_size}-{today}-{test_data}batch-size{args.batch_size}_epochs{args.epochs}_{freeze}{training_type}"
     output_dir = Path(config_env["MODEL_PATH"], session_name)
 
     resume_from_checkpoint, latest_checkpoint = None, None
@@ -33,6 +34,8 @@ def get_session_name_and_ouput_dir(args, config_env):
         if len(checkpoints) != 0:
             latest_checkpoint = max(checkpoints, key=os.path.getctime)
             resume_from_checkpoint = latest_checkpoint
+        
+    output_dir.mkdir(exist_ok=True, parents=True)
 
     return session_name, output_dir, resume_from_checkpoint, latest_checkpoint
 

@@ -2,6 +2,8 @@ import os
 import json
 import kornia as K
 import numpy as np
+import pandas as pd
+from pathlib import Path
 from transformers import AutoImageProcessor
 from datasets import Dataset, DatasetDict, Image as DatasetsImage
 
@@ -13,6 +15,7 @@ from PIL import ImageFile as PILImageFile
 PILImageFile.LOAD_TRUNCATED_IMAGES = True
 
 from .data_loading import load_datasets
+from ..model.model_setup import ClassificationType, get_training_type_from_args
 
 class PreProcess(nn.Module):
     def __init__(self) -> None:
@@ -25,14 +28,17 @@ class PreProcess(nn.Module):
         return x_out.float() / 255.0
 
 
-def load_and_preprocess_df(df, img_path, img_col_name="FileName"):
+def load_and_preprocess_df(df: pd.DataFrame, img_path: str, training_type: ClassificationType, img_col_name: str="FileName"):
     df.loc[:, df.columns != img_col_name] = df.loc[:, df.columns != img_col_name].astype(float)
     img_names = df[img_col_name].values.tolist()
     img_paths = [os.path.join(img_path, name) for name in img_names]
     labels = df.drop(columns=[img_col_name]).values.tolist()
-    return {"image": img_paths, "label": labels, "image_name": img_names}
+    if training_type == ClassificationType.MONOLABEL:
+        labels = [label.index(max(label)) for label in labels]
+    return [{"image": img_path, "label": label} for img_path, label in zip(img_paths, labels)]
 
-def transform_to_dict(transforms):
+
+def transform_to_dict(transforms: nn.Sequential):
     transform_list = []
     for transform in transforms:
         transform_details = {
@@ -46,7 +52,8 @@ def transform_to_dict(transforms):
         transform_list.append(transform_details)
     return transform_list
 
-def save_transforms_to_json(train_transforms, val_transforms, filename):
+
+def save_transforms_to_json(train_transforms: nn.Sequential, val_transforms: nn.Sequential, filename: Path):
 
     transforms_dict = {
         'train_transforms': transform_to_dict(train_transforms),
@@ -55,18 +62,20 @@ def save_transforms_to_json(train_transforms, val_transforms, filename):
     with open(filename, 'w') as f:
         json.dump(transforms_dict, f, indent=4)
 
-def create_datasets(df_folder, args, img_path, output_dir):
+
+def create_datasets(df_folder: str, args, img_path: str, output_dir: Path):
 
     train_df, val_df, test_df = load_datasets(df_folder, args.test_data)
+    classification_type = get_training_type_from_args(args)
 
-    train_data = load_and_preprocess_df(train_df, img_path)
-    val_data = load_and_preprocess_df(val_df, img_path)
-    test_data = load_and_preprocess_df(test_df, img_path)
-    print(train_data)
-    ds_train = Dataset.from_dict(train_data).cast_column("image", DatasetsImage())
-    ds_val = Dataset.from_dict(val_data).cast_column("image", DatasetsImage())
-    ds_test = Dataset.from_dict(test_data).cast_column("image", DatasetsImage())
-    print(ds_train)
+    train_data = load_and_preprocess_df(train_df, img_path, classification_type)
+    val_data = load_and_preprocess_df(val_df, img_path, classification_type)
+    test_data = load_and_preprocess_df(test_df, img_path, classification_type)
+
+    ds_train = Dataset.from_list(train_data).cast_column("image", DatasetsImage())
+    ds_val = Dataset.from_list(val_data).cast_column("image", DatasetsImage())
+    ds_test = Dataset.from_list(test_data).cast_column("image", DatasetsImage())
+
 
     ds = DatasetDict({
         "train": ds_train,
@@ -99,7 +108,7 @@ def create_datasets(df_folder, args, img_path, output_dir):
         K.augmentation.Normalize(mean=dummy_feature_extractor.image_mean, std=dummy_feature_extractor.image_std),
     )   
 
-    tansforms_path = os.path.join(output_dir, 'transforms.json')
+    tansforms_path = Path(output_dir, 'transforms.json')
     save_transforms_to_json(train_transforms, val_transforms, tansforms_path)    
     
     def preprocess_train(example_batch):

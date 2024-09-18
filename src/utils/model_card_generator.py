@@ -19,7 +19,6 @@ def format_training_results_to_markdown(trainer_state):
         if epoch in seen_epochs:
             continue  # Skip this log if the epoch has already been added
         seen_epochs.add(epoch)
-        training_loss = log.get("loss", "N/A")
         validation_loss = log.get("eval_loss", "N/A")
         validation_accuracy = log.get("eval_accuracy", "N/A")
         eval_f1_micro = log.get("eval_f1_micro", "N/A")
@@ -33,9 +32,8 @@ def extract_test_results(test_results):
     eval_loss = test_results.get('eval_loss', 0)
     f1_micro = test_results.get('eval_f1_micro', 0)
     f1_macro = test_results.get('eval_f1_macro', 0)
-    roc_auc = test_results.get('eval_roc_auc', 0)
     accuracy = test_results.get('eval_accuracy', 0)
-    return eval_loss, f1_micro, f1_macro, roc_auc, accuracy
+    return eval_loss, f1_micro, f1_macro, accuracy
 
 def save_hyperparameters_to_config(output_dir: Path, args, emissions: float | None):
 
@@ -77,7 +75,7 @@ def save_hyperparameters_to_config(output_dir: Path, args, emissions: float | No
 
     print("Updated configuration saved to config.json")
 
-def generate_model_card(data_paths: list[Path], counts_path: Path, output_dir: Path):
+def generate_model_card(data_paths: list[Path], counts_path: Path, output_dir: Path, args):
 
     data = {}
     for data_path in data_paths:
@@ -87,7 +85,7 @@ def generate_model_card(data_paths: list[Path], counts_path: Path, output_dir: P
     model_name = data["config"].get('_name_or_path', 'Unknown model')  
 
     markdown_training_results = format_training_results_to_markdown(data["trainer_state"])
-    eval_loss, f1_micro, f1_macro, roc_auc, accuracy = extract_test_results(data["test_results"])
+    eval_loss, f1_micro, f1_macro, accuracy = extract_test_results(data["test_results"])
     markdown_counts = format_counts_to_markdown(counts_path)
     transforms_markdown = format_transforms_to_markdown(data["transforms"])
     if data["config"].get('data_augmentation') == False :
@@ -102,8 +100,8 @@ language:
 - eng
 license: wtfpl
 tags:
-- multilabel-image-classification
-- multilabel
+- {args.training_type}-image-classification
+- {args.training_type}
 - generated_from_trainer
 base_model: {model_name}
 model-index:
@@ -111,18 +109,17 @@ model-index:
   results: []
 ---
 
-DinoVd'eau is a fine-tuned version of [{model_name}](https://huggingface.co/{model_name}). It achieves the following results on the test set:
+{args.new_model_name} is a fine-tuned version of [{model_name}](https://huggingface.co/{model_name}). It achieves the following results on the test set:
 
 - Loss: {eval_loss:.4f}
 - F1 Micro: {f1_micro:.4f}
 - F1 Macro: {f1_macro:.4f}
-- Roc Auc: {roc_auc:.4f}
 - Accuracy: {accuracy:.4f}
 
 ---
 
 # Model description
-DinoVd'eau is a model built on top of dinov2 model for underwater multilabel image classification.The classification head is a combination of linear, ReLU, batch normalization, and dropout layers.
+{args.new_model_name} is a model built on top of dinov2 model for underwater multilabel image classification.The classification head is a combination of linear, ReLU, batch normalization, and dropout layers.
 \nThe source code for training the model can be found in this [Git repository](https://github.com/SeatizenDOI/DinoVdeau).
 
 - **Developed by:** [lombardata](https://huggingface.co/lombardata), credits to [César Leblanc](https://huggingface.co/CesarLeblanc) and [Victor Illien](https://huggingface.co/groderg)

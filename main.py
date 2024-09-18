@@ -5,11 +5,11 @@ from pathlib import Path
 from codecarbon import EmissionsTracker
 from huggingface_hub import HfFolder, HFSummaryWriter
 
-from src.data.data_loading import load_datasets, generate_labels
+from src.utils.training import setup_trainer
+from src.data.data_loading import generate_labels
+from src.utils.evaluation import evaluate_and_save
 from src.data.data_preprocessing import create_datasets
 from src.model.model_setup import setup_model, get_training_type_from_args
-from src.utils.training import setup_trainer
-from src.utils.evaluation import evaluate_and_save
 from src.utils.model_card_generator import generate_model_card, save_hyperparameters_to_config
 from src.utils.utils import print_gpu_is_used, send_data_to_hugging_face, get_session_name_and_ouput_dir
     
@@ -34,8 +34,9 @@ def get_args():
 
     # Model options.
     parser.add_argument('--model_name', type=str, default="facebook/dinov2-large", help="Model name or path")
-    parser.add_argument('--new_model_name', type=str, default="Joseph", help="New model name")
+    parser.add_argument('--new_model_name', type=str, default="Aina", help="New model name")
     parser.add_argument('-tt', '--training_type', type=str, default="multilabel", help="Choose your training type. Can be multilabel or monolabel.")
+    parser.add_argument('--no_custom_head', action="store_true", help='Flag to use linear layer instead of custom head')
 
     # Global options.
     parser.add_argument('--disable_web', action="store_true", help='Flag to disable the connection to the web')
@@ -52,7 +53,7 @@ def main(args):
     # Load config json.
     config_path = Path(args.config_path)
     if not config_path.exists() or not config_path.is_file():
-        print(f"Config file not foun for path {config_path}")
+        print(f"Config file not found for path {config_path}")
         return
 
     with open(config_path, 'r') as file:
@@ -65,13 +66,7 @@ def main(args):
     # Create new model name.
     session_name, output_dir, resume_from_checkpoint, latest_checkpoint = get_session_name_and_ouput_dir(args, config_env)
 
-    print("\ninfo : Model name is \n", session_name)
-
-    # Create folder.
-    output_dir.mkdir(exist_ok=True, parents=True)
-
-    # Get training type.
-    training_type = get_training_type_from_args(args)
+    print("\ninfo : Model name is ", session_name)
 
     # Load Huggingface token.
     if not args.disable_web:
@@ -83,16 +78,16 @@ def main(args):
     classes_names, id2label, label2id = generate_labels(train_df)
     
     # Setup model.
-    model = setup_model(args, classes_names, id2label, label2id, training_type)
+    model = setup_model(args, classes_names, id2label, label2id)
 
     # Setup trainer.
-    trainer = setup_trainer(args, model, ds, dummy_feature_extractor, output_dir, training_type)
+    trainer = setup_trainer(args, model, ds, dummy_feature_extractor, output_dir)
     
     if not args.disable_web:
         # Track carbon emissions
-        tracker = EmissionsTracker(log_level="WARNING", save_to_file=False)
+        tracker = EmissionsTracker(log_level="WARNING", save_to_file=False, allow_multiple_runs=True)
         tracker.start()
-
+    
     # Start training.
     print("\ninfo : Training model...\n")
     if args.resume:
@@ -111,7 +106,7 @@ def main(args):
     evaluate_and_save(args, trainer, ds)
 
     # Save hyperparameters.
-    emissions = tracker.stop() if not args.disable_web else None
+    emissions = None #tracker.stop() if not args.disable_web else None
     save_hyperparameters_to_config(output_dir, args, emissions)
 
     # Generate model card.
@@ -120,7 +115,7 @@ def main(args):
     data_paths = [Path(output_dir, file) for file in files]
     
     print("info : Generating model card...\n")
-    generate_model_card(data_paths, counts_path, output_dir)
+    generate_model_card(data_paths, counts_path, output_dir, args)
 
     # Send data to hugging face if needed.
     if args.disable_web: return 
