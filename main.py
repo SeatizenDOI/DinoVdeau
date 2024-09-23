@@ -1,20 +1,21 @@
 import json
 import time
-import argparse
 from pathlib import Path
 from codecarbon import EmissionsTracker
+from argparse import ArgumentParser, Namespace
 from huggingface_hub import HfFolder, HFSummaryWriter
 
 from src.utils.training import setup_trainer
 from src.data.data_loading import generate_labels
-from src.utils.evaluation import evaluate_and_save
 from src.data.data_preprocessing import create_datasets
-from src.model.model_setup import setup_model, get_training_type_from_args
+from src.utils.evaluation import evaluate_and_save, generate_threshold
+from src.utils.F1PerClassManager import F1PerClassManager, parse_target_scale_from_input
+from src.model.model_setup import setup_model, get_training_type_from_args, ClassificationType
 from src.utils.model_card_generator import generate_model_card, save_hyperparameters_to_config
 from src.utils.utils import print_gpu_is_used, send_data_to_hugging_face, get_session_name_and_ouput_dir
     
-def get_args():
-    parser = argparse.ArgumentParser(description="DINOv2 Image Classification Training Script")
+def get_args() -> Namespace:
+    parser = ArgumentParser(description="DINOv2 Image Classification Training Script")
     
     # Training parameters.
     parser.add_argument('-is', '--image_size', type=int, default=518, help='Image size for both dimensions')
@@ -33,12 +34,13 @@ def get_args():
     parser.add_argument('--resume', action="store_true", help='Flag to resume training from the last checkpoint')
 
     # Model options.
-    parser.add_argument('--model_name', type=str, default="facebook/dinov2-large", help="Model name or path")
+    parser.add_argument('--model_name', type=str, default="facebook/dinov2-large", help="Model name to fine-tune on hugging-face.")
     parser.add_argument('--new_model_name', type=str, default="Aina", help="New model name")
     parser.add_argument('-tt', '--training_type', type=str, default="multilabel", help="Choose your training type. Can be multilabel or monolabel.")
     parser.add_argument('--no_custom_head', action="store_true", help='Flag to use linear layer instead of custom head')
 
     # Global options.
+    parser.add_argument('--target_scale', type=str, default="fine_scale", help="Can be fine_scale (ASV) or medium_scale (DRONE)")
     parser.add_argument('--disable_web', action="store_true", help='Flag to disable the connection to the web')
     parser.add_argument('--config_path', default="config.json", help="Path to config.json file.")
 
@@ -46,7 +48,7 @@ def get_args():
     return parser.parse_args()
 
 
-def main(args):
+def main(args: Namespace) -> None:
 
     # -- Load and parse arguments.
 
@@ -57,13 +59,14 @@ def main(args):
         return
 
     with open(config_path, 'r') as file:
-        config_env = json.load(file)
+        config_env: dict[str, str] = json.load(file)
 
     print_gpu_is_used()
 
     start_time = time.time()
 
     # Create new model name.
+    training_type = get_training_type_from_args(args)
     session_name, output_dir, resume_from_checkpoint, latest_checkpoint = get_session_name_and_ouput_dir(args, config_env)
 
     print("\ninfo : Model name is ", session_name)
@@ -73,7 +76,7 @@ def main(args):
         HfFolder.save_token(config_env["HUGGINGFACE_TOKEN"])
         logger = HFSummaryWriter(repo_id=session_name, logdir=str(Path(output_dir, "runs")), commit_every=5)
     
-    # Set up dataset.
+    # Setup dataset.
     ds, dummy_feature_extractor, train_df = create_datasets(config_env["ANNOTATION_PATH"], args, config_env["IMG_PATH"], output_dir)
     classes_names, id2label, label2id = generate_labels(train_df)
     
@@ -92,7 +95,7 @@ def main(args):
     print("\ninfo : Training model...\n")
     if args.resume:
         print("\ninfo : Resuming training from checkpoint \n", latest_checkpoint)
-        train_results =  trainer.train(resume_from_checkpoint=resume_from_checkpoint)
+        train_results = trainer.train(resume_from_checkpoint=resume_from_checkpoint)
     else :
         train_results = trainer.train()
 
@@ -103,10 +106,21 @@ def main(args):
     trainer.save_state()
     
     print("\ninfo : Evaluating model on test set...\n")
-    evaluate_and_save(args, trainer, ds)
+    evaluate_and_save(args, trainer, ds["test"])
+
+    # Generate threshold file.
+    print("\ninfo : Create threshold file on val set...\n")
+    thresholds = generate_threshold(trainer, ds["validation"], output_dir, classes_names)
+
+    # Generate f1 score per class based on target scale.
+    if training_type == ClassificationType.MULTILABEL:
+        print("\ninfo : Generate f1 score per class based on target scale...\n")
+        target_scale = parse_target_scale_from_input(args)
+        f1Manager = F1PerClassManager(target_scale, thresholds, classes_names)
+        f1Manager.generate(ds["test"], output_dir, model)
 
     # Save hyperparameters.
-    emissions = None #tracker.stop() if not args.disable_web else None
+    emissions = None if args.disable_web else tracker.stop()
     save_hyperparameters_to_config(output_dir, args, emissions)
 
     # Generate model card.

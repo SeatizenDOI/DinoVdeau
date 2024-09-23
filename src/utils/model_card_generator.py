@@ -5,8 +5,9 @@ import tokenizers
 import transformers
 import pandas as pd
 from pathlib import Path
+from argparse import Namespace
 
-def format_training_results_to_markdown(trainer_state):
+def format_training_results_to_markdown(trainer_state: dict) -> str:
     training_logs = trainer_state.get("log_history", [])
     markdown_table = "Epoch | Validation Loss | Accuracy | F1 Macro | F1 Micro | Learning Rate\n"
     markdown_table += "--- | --- | --- | --- | --- | ---\n"
@@ -28,14 +29,16 @@ def format_training_results_to_markdown(trainer_state):
     
     return markdown_table
 
-def extract_test_results(test_results):
-    eval_loss = test_results.get('eval_loss', 0)
-    f1_micro = test_results.get('eval_f1_micro', 0)
-    f1_macro = test_results.get('eval_f1_macro', 0)
-    accuracy = test_results.get('eval_accuracy', 0)
+
+def extract_test_results(test_results: dict) -> tuple[float, float, float, float]:
+    eval_loss = test_results.get('eval_loss', 0.0)
+    f1_micro = test_results.get('eval_f1_micro', 0.0)
+    f1_macro = test_results.get('eval_f1_macro', 0.0)
+    accuracy = test_results.get('eval_accuracy', 0.0)
     return eval_loss, f1_micro, f1_macro, accuracy
 
-def save_hyperparameters_to_config(output_dir: Path, args, emissions: float | None):
+
+def save_hyperparameters_to_config(output_dir: Path, args, emissions: float | None) -> None:
 
     # Regroup and save hyperparameters
     hyperparameters = {
@@ -75,7 +78,8 @@ def save_hyperparameters_to_config(output_dir: Path, args, emissions: float | No
 
     print("Updated configuration saved to config.json")
 
-def generate_model_card(data_paths: list[Path], counts_path: Path, output_dir: Path, args):
+
+def generate_model_card(data_paths: list[Path], counts_path: Path, output_dir: Path, args: Namespace) -> None:
 
     data = {}
     for data_path in data_paths:
@@ -90,7 +94,7 @@ def generate_model_card(data_paths: list[Path], counts_path: Path, output_dir: P
     transforms_markdown = format_transforms_to_markdown(data["transforms"])
     if data["config"].get('data_augmentation') == False :
         transforms_markdown = "No augmentation"
-    hyperparameters_markdown = format_hyperparameters_to_markdown(data["config"])
+    hyperparameters_markdown = format_hyperparameters_to_markdown(data["config"], data["all_results"])
     carbon_footprint_markdown = format_carbon_footprint_to_markdown(data["config"])
     framework_versions_markdown = format_framework_versions_to_markdown()  
 
@@ -119,7 +123,7 @@ model-index:
 ---
 
 # Model description
-{args.new_model_name} is a model built on top of dinov2 model for underwater multilabel image classification.The classification head is a combination of linear, ReLU, batch normalization, and dropout layers.
+{args.new_model_name} is a model built on top of {model_name} model for underwater multilabel image classification.The classification head is a combination of linear, ReLU, batch normalization, and dropout layers.
 \nThe source code for training the model can be found in this [Git repository](https://github.com/SeatizenDOI/DinoVdeau).
 
 - **Developed by:** [lombardata](https://huggingface.co/lombardata), credits to [César Leblanc](https://huggingface.co/CesarLeblanc) and [Victor Illien](https://huggingface.co/groderg)
@@ -166,11 +170,13 @@ Data were augmented using the following transformations :
 
     print(f"Model card generated and saved to {output_filename} in the directory {output_dir}")
 
+
 def format_counts_to_markdown(counts_path):
     counts_df = pd.read_csv(counts_path)
     counts_df.rename(columns={counts_df.columns[0]: "Class"}, inplace=True)
     markdown_table = counts_df.to_markdown(index=False)
     return markdown_table
+
 
 def format_transforms_to_markdown(transforms_dict):
     transforms_markdown = "\n"
@@ -184,10 +190,15 @@ def format_transforms_to_markdown(transforms_dict):
         transforms_markdown += "\n"
     return transforms_markdown
 
-def format_hyperparameters_to_markdown(config):
+
+def format_hyperparameters_to_markdown(config, all_results):
+    epoch = all_results.get("epoch", None)
+    if epoch == None:
+        epoch = config.get('num_epochs', 'Not specified')
+
     markdown = "\n"
     markdown += "The following hyperparameters were used during training:\n\n"
-    markdown += f"- **Number of Epochs**: {config.get('num_epochs', 'Not specified')}\n"
+    markdown += f"- **Number of Epochs**: {epoch}\n"
     markdown += f"- **Learning Rate**: {config.get('initial_learning_rate', 'Not specified')}\n"
     markdown += f"- **Train Batch Size**: {config.get('train_batch_size', 'Not specified')}\n"
     markdown += f"- **Eval Batch Size**: {config.get('eval_batch_size', 'Not specified')}\n"
@@ -196,6 +207,7 @@ def format_hyperparameters_to_markdown(config):
     markdown += f"- **Freeze Encoder**: {'Yes' if config.get('freeze_encoder', True) else 'No'}\n"
     markdown += f"- **Data Augmentation**: {'Yes' if config.get('data_augmentation', True) else 'No'}\n"
     return markdown
+
 
 def format_carbon_footprint_to_markdown(config):
     markdown = "\n"
@@ -210,6 +222,7 @@ def format_carbon_footprint_to_markdown(config):
     else:
         markdown += "No carbon footprint data available.\n"
     return markdown
+
 
 def format_framework_versions_to_markdown():
     transformers_version = transformers.__version__

@@ -1,6 +1,7 @@
 import enum
 import json
 import torch.nn as nn
+from argparse import Namespace
 from transformers import AutoConfig, AutoModelForImageClassification
 
 class ClassificationType(enum.Enum):
@@ -8,7 +9,7 @@ class ClassificationType(enum.Enum):
     MONOLABEL = "single_label_classification"
 
 
-def get_training_type_from_args(args) -> ClassificationType:
+def get_training_type_from_args(args: Namespace) -> ClassificationType:
     """ Return ClassificationType object from args. """
     if args.training_type == "multilabel": return ClassificationType.MULTILABEL
     elif args.training_type == "monolabel": return ClassificationType.MONOLABEL
@@ -16,7 +17,7 @@ def get_training_type_from_args(args) -> ClassificationType:
         raise NameError(f"Argument provide for training type not found: {args.training_type}.") 
 
 
-def create_head(num_features, number_classes, dropout_prob=0.5, activation_func=nn.ReLU):
+def create_head(num_features: int, number_classes: int, dropout_prob: float = 0.5, activation_func=nn.ReLU) -> nn.Sequential:
     features_lst = [num_features, num_features // 2, num_features // 4]
     layers = []
     for in_f, out_f in zip(features_lst[:-1], features_lst[1:]):
@@ -28,7 +29,7 @@ def create_head(num_features, number_classes, dropout_prob=0.5, activation_func=
     return nn.Sequential(*layers)
 
 
-def setup_model(args, label_names, id2label, label2id):
+def setup_model(args: Namespace, label_names: list, id2label: dict, label2id: dict):
 
     training_type = get_training_type_from_args(args)
 

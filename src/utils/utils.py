@@ -2,6 +2,7 @@ import os
 import torch
 from pathlib import Path
 from datetime import date
+from argparse import Namespace
 from huggingface_hub import HfApi, HfFolder
 
 def print_gpu_is_used() -> None:
@@ -15,7 +16,7 @@ def print_gpu_is_used() -> None:
         print("GPU not available, using CPU instead.")
 
 
-def get_session_name_and_ouput_dir(args, config_env):
+def get_session_name_and_ouput_dir(args: Namespace, config_env: dict[str, str]) -> tuple[str, Path, Path | None, Path | None] :
     """ Return session_name and output_dir computed by args. """
 
     today = date.today().strftime("%Y_%m_%d")
@@ -23,7 +24,7 @@ def get_session_name_and_ouput_dir(args, config_env):
     freeze = 'unfreeze' if args.no_freeze else 'freeze'
     test_data = "prova_" if args.test_data else ""
     training_type = "_monolabel" if args.training_type == "monolabel" else ""
-    session_name = f"{args.new_model_name}-{model_size}-{today}-{test_data}batch-size{args.batch_size}_epochs{args.epochs}_{freeze}{training_type}"
+    session_name = f"{args.new_model_name}-{model_size}-{today}-{test_data}batch-size{args.batch_size}_{freeze}{training_type}"
     output_dir = Path(config_env["MODEL_PATH"], session_name)
 
     resume_from_checkpoint, latest_checkpoint = None, None
@@ -40,7 +41,7 @@ def get_session_name_and_ouput_dir(args, config_env):
     return session_name, output_dir, resume_from_checkpoint, latest_checkpoint
 
 
-def send_data_to_hugging_face(session_name, output_dir):
+def send_data_to_hugging_face(session_name: str, output_dir: Path) -> None:
     """ Send files to hugging face."""
     
     # Send data to huggingface.
@@ -73,3 +74,4 @@ def send_data_to_hugging_face(session_name, output_dir):
         )
 
     print(f"All files successfully uploaded to the Hub: {repo_url}")
+

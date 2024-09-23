@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 
-def load_datasets(df_folder: str, test_data_flag: bool):
+def load_datasets(df_folder: str, test_data_flag: bool) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """ From a path folder, find and load train, test, val file into DataFrame. """
     train_df_path, val_df_path, test_df_path = None, None, None
 

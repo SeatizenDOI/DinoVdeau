@@ -4,6 +4,7 @@ import kornia as K
 import numpy as np
 import pandas as pd
 from pathlib import Path
+from argparse import Namespace
 from transformers import AutoImageProcessor
 from datasets import Dataset, DatasetDict, Image as DatasetsImage
 
@@ -28,22 +29,26 @@ class PreProcess(nn.Module):
         return x_out.float() / 255.0
 
 
-def load_and_preprocess_df(df: pd.DataFrame, img_path: str, training_type: ClassificationType, img_col_name: str="FileName"):
+def load_and_preprocess_df(df: pd.DataFrame, img_path: str, training_type: ClassificationType, img_col_name: str="FileName") -> list[dict]:
     df.loc[:, df.columns != img_col_name] = df.loc[:, df.columns != img_col_name].astype(float)
     img_names = df[img_col_name].values.tolist()
     img_paths = [os.path.join(img_path, name) for name in img_names]
     labels = df.drop(columns=[img_col_name]).values.tolist()
+    
     if training_type == ClassificationType.MONOLABEL:
         labels = [label.index(max(label)) for label in labels]
+    
     return [{"image": img_path, "label": label} for img_path, label in zip(img_paths, labels)]
 
 
-def transform_to_dict(transforms: nn.Sequential):
+def transform_to_dict(transforms: nn.Sequential) -> list:
     transform_list = []
     for transform in transforms:
+        
         transform_details = {
             'operation': type(transform).__name__
         }
+
         if hasattr(transform, 'p'):
             transform_details['probability'] = transform.p
         if hasattr(transform, 'size'):
@@ -53,7 +58,8 @@ def transform_to_dict(transforms: nn.Sequential):
     return transform_list
 
 
-def save_transforms_to_json(train_transforms: nn.Sequential, val_transforms: nn.Sequential, filename: Path):
+
+def save_transforms_to_json(train_transforms: nn.Sequential, val_transforms: nn.Sequential, filename: Path) -> None:
 
     transforms_dict = {
         'train_transforms': transform_to_dict(train_transforms),
@@ -63,7 +69,7 @@ def save_transforms_to_json(train_transforms: nn.Sequential, val_transforms: nn.
         json.dump(transforms_dict, f, indent=4)
 
 
-def create_datasets(df_folder: str, args, img_path: str, output_dir: Path):
+def create_datasets(df_folder: str, args: Namespace, img_path: str, output_dir: Path) -> tuple[DatasetDict, any, list[dict]]:
 
     train_df, val_df, test_df = load_datasets(df_folder, args.test_data)
     classification_type = get_training_type_from_args(args)
