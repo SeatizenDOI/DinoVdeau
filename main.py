@@ -35,7 +35,7 @@ def get_args() -> Namespace:
 
     # Model options.
     parser.add_argument('--model_name', type=str, default="facebook/dinov2-large", help="Model name to fine-tune on hugging-face.")
-    parser.add_argument('--new_model_name', type=str, default="Aina", help="New model name")
+    parser.add_argument('--new_model_name', type=str, default="Joseph", help="New model name")
     parser.add_argument('-tt', '--training_type', type=str, default="multilabel", help="Choose your training type. Can be multilabel or monolabel.")
     parser.add_argument('--no_custom_head', action="store_true", help='Flag to use linear layer instead of custom head')
 

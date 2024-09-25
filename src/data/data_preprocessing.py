@@ -95,7 +95,7 @@ def create_datasets(df_folder: str, args: Namespace, img_path: str, output_dir: 
         do_center_crop=False, 
         do_resize=True, 
         do_rescale=True, 
-        do_normalize=True
+        do_normalize=True,
     )    
 
     train_transforms = nn.Sequential(
