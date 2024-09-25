@@ -1,7 +1,9 @@
 import os
+import numpy as np
 import pandas as pd
 
-def load_datasets(df_folder, test_data_flag):
+def load_datasets(df_folder: str, test_data_flag: bool) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """ From a path folder, find and load train, test, val file into DataFrame. """
     train_df_path, val_df_path, test_df_path = None, None, None
 
     for filename in os.listdir(df_folder):
@@ -29,3 +31,13 @@ def load_datasets(df_folder, test_data_flag):
         test_df = test_df.iloc[:N]
     
     return train_df, val_df, test_df
+
+def generate_labels(train_df: pd.DataFrame) -> tuple[list, dict, dict]:
+    """ Extract classes_names and map label - id """
+    
+    classes_names = train_df.columns[1:].tolist()
+    classes_nb = list(np.arange(len(classes_names)))
+    id2label = { int(classes_nb[i]): classes_names[i] for i in range(len(classes_nb)) }
+    label2id = { v: k for k, v in id2label.items()}
+
+    return classes_names, id2label, label2id

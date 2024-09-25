@@ -10,3 +10,4 @@ error.txt
 *.out
 *.err
 resume_training.*
+models

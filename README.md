@@ -82,6 +82,19 @@ Here is an example command to install PyTorch with CUDA support:
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
 
+4: **Create configiguration file** : At root folder, you need to create a config file called `config.json` with this parameters :
+```json
+{
+  "ANNOTATION_PATH": "Path to annotation folder with you train.csv, val.csv, test.csv files",
+  "IMG_PATH": "Path to images folder",
+  "MODEL_PATH": "",
+  "MODEL_NAME": "",
+  "HUGGINGFACE_TOKEN": "YOUR API TOKEN",
+  "LOCAL_MODEL_PATH": "/mnt/disk_victorlebos/data/datarmor/models/local_models/dinov2-large/"
+}
+```
+
+
 By following these steps, you will set up the necessary environment to work with `DinoVd'eau`.
 
 ## Usage

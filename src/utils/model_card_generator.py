@@ -1,12 +1,13 @@
-import os
 import json
 import torch
 import datasets
 import tokenizers
-import pandas as pd
 import transformers
+import pandas as pd
+from pathlib import Path
+from argparse import Namespace
 
-def format_training_results_to_markdown(trainer_state):
+def format_training_results_to_markdown(trainer_state: dict) -> str:
     training_logs = trainer_state.get("log_history", [])
     markdown_table = "Epoch | Validation Loss | Accuracy | F1 Macro | F1 Micro | Learning Rate\n"
     markdown_table += "--- | --- | --- | --- | --- | ---\n"
@@ -19,7 +20,6 @@ def format_training_results_to_markdown(trainer_state):
         if epoch in seen_epochs:
             continue  # Skip this log if the epoch has already been added
         seen_epochs.add(epoch)
-        training_loss = log.get("loss", "N/A")
         validation_loss = log.get("eval_loss", "N/A")
         validation_accuracy = log.get("eval_accuracy", "N/A")
         eval_f1_micro = log.get("eval_f1_micro", "N/A")
@@ -29,51 +29,73 @@ def format_training_results_to_markdown(trainer_state):
     
     return markdown_table
 
-def extract_test_results(test_results):
-    eval_loss = test_results.get('eval_loss', 0)
-    f1_micro = test_results.get('eval_f1_micro', 0)
-    f1_macro = test_results.get('eval_f1_macro', 0)
-    roc_auc = test_results.get('eval_roc_auc', 0)
-    accuracy = test_results.get('eval_accuracy', 0)
-    return eval_loss, f1_micro, f1_macro, roc_auc, accuracy
 
-def save_hyperparameters_to_config(output_dir, hyperparameters):
-    config_path = os.path.join(output_dir, 'config.json')
-    if os.path.exists(config_path):
+def extract_test_results(test_results: dict) -> tuple[float, float, float, float]:
+    eval_loss = test_results.get('eval_loss', 0.0)
+    f1_micro = test_results.get('eval_f1_micro', 0.0)
+    f1_macro = test_results.get('eval_f1_macro', 0.0)
+    accuracy = test_results.get('eval_accuracy', 0.0)
+    return eval_loss, f1_micro, f1_macro, accuracy
+
+
+def save_hyperparameters_to_config(output_dir: Path, args, emissions: float | None) -> None:
+
+    # Regroup and save hyperparameters
+    hyperparameters = {
+        'initial_learning_rate': args.initial_learning_rate,
+        'train_batch_size': args.batch_size,
+        'eval_batch_size': args.batch_size,
+        'optimizer': {'type': 'Adam'},
+        'lr_scheduler_type': {'type': 'ReduceLROnPlateau'},
+        'patience_lr_scheduler': args.patience_lr_scheduler,
+        'factor_lr_scheduler': args.factor_lr_scheduler,
+        'weight_decay': args.weight_decay,
+        'early_stopping_patience': args.early_stopping_patience,
+        'freeze_encoder': not(args.no_freeze),
+        'data_augmentation':not(args.no_data_aug),
+        'num_epochs': args.epochs
+    }
+
+    if emissions != None:
+        hyperparameters['emissions_data'] = {
+            'emissions': emissions,
+            'source': "Code Carbon",
+            'training_type': "fine-tuning",
+            'geographical_location': "Brest, France",
+            'hardware_used': "NVIDIA Tesla V100 PCIe 32 Go"
+        }
+    
+    # Load hyperparameters.
+    config_path, config = Path(output_dir, 'config.json'), {}
+    if Path.exists(config_path):
         with open(config_path, 'r') as file:
             config = json.load(file)
-    else:
-        config = {}
+
+    # Save hyperparameters.
     config.update(hyperparameters)
     with open(config_path, 'w') as file:
         json.dump(config, file, indent=4)
+
     print("Updated configuration saved to config.json")
 
-def generate_model_card(data_paths, counts_path, output_dir):
-    train_results_path, test_results_path, trainer_state_path, all_results_path, config_path, transforms_path = data_paths
 
-    with open(train_results_path, 'r') as file:
-        train_results = json.load(file)
-    with open(test_results_path, 'r') as file:
-        test_results = json.load(file)
-    with open(trainer_state_path, 'r') as file:
-        trainer_state = json.load(file)
-    with open(all_results_path, 'r') as file:
-        all_results = json.load(file)
-    with open(config_path, 'r') as file:
-        config = json.load(file)
-    with open(transforms_path, 'r') as file:
-        transforms = json.load(file)    
-    model_name = config.get('_name_or_path', 'Unknown model')  
+def generate_model_card(data_paths: list[Path], counts_path: Path, output_dir: Path, args: Namespace) -> None:
 
-    markdown_training_results = format_training_results_to_markdown(trainer_state)
-    eval_loss, f1_micro, f1_macro, roc_auc, accuracy = extract_test_results(test_results)
+    data = {}
+    for data_path in data_paths:
+        with open(data_path, 'r') as file:
+            data[data_path.stem] = json.load(file)
+  
+    model_name = data["config"].get('_name_or_path', 'Unknown model')  
+
+    markdown_training_results = format_training_results_to_markdown(data["trainer_state"])
+    eval_loss, f1_micro, f1_macro, accuracy = extract_test_results(data["test_results"])
     markdown_counts = format_counts_to_markdown(counts_path)
-    transforms_markdown = format_transforms_to_markdown(transforms)
-    if config.get('data_augmentation') == False :
+    transforms_markdown = format_transforms_to_markdown(data["transforms"])
+    if data["config"].get('data_augmentation') == False :
         transforms_markdown = "No augmentation"
-    hyperparameters_markdown = format_hyperparameters_to_markdown(config)
-    carbon_footprint_markdown = format_carbon_footprint_to_markdown(config)
+    hyperparameters_markdown = format_hyperparameters_to_markdown(data["config"], data["all_results"])
+    carbon_footprint_markdown = format_carbon_footprint_to_markdown(data["config"])
     framework_versions_markdown = format_framework_versions_to_markdown()  
 
     markdown_content = f"""
@@ -82,27 +104,26 @@ language:
 - eng
 license: wtfpl
 tags:
-- multilabel-image-classification
-- multilabel
+- {args.training_type}-image-classification
+- {args.training_type}
 - generated_from_trainer
 base_model: {model_name}
 model-index:
-- name: {os.path.basename(output_dir)}
+- name: {output_dir.name}
   results: []
 ---
 
-DinoVd'eau is a fine-tuned version of [{model_name}](https://huggingface.co/{model_name}). It achieves the following results on the test set:
+{args.new_model_name} is a fine-tuned version of [{model_name}](https://huggingface.co/{model_name}). It achieves the following results on the test set:
 
 - Loss: {eval_loss:.4f}
 - F1 Micro: {f1_micro:.4f}
 - F1 Macro: {f1_macro:.4f}
-- Roc Auc: {roc_auc:.4f}
 - Accuracy: {accuracy:.4f}
 
 ---
 
 # Model description
-DinoVd'eau is a model built on top of dinov2 model for underwater multilabel image classification.The classification head is a combination of linear, ReLU, batch normalization, and dropout layers.
+{args.new_model_name} is a model built on top of {model_name} model for underwater multilabel image classification.The classification head is a combination of linear, ReLU, batch normalization, and dropout layers.
 \nThe source code for training the model can be found in this [Git repository](https://github.com/SeatizenDOI/DinoVdeau).
 
 - **Developed by:** [lombardata](https://huggingface.co/lombardata), credits to [César Leblanc](https://huggingface.co/CesarLeblanc) and [Victor Illien](https://huggingface.co/groderg)
@@ -144,16 +165,18 @@ Data were augmented using the following transformations :
 """
 
     output_filename = "README.md"
-    with open(os.path.join(output_dir, output_filename), 'w') as file:
+    with open(Path(output_dir, output_filename), 'w') as file:
         file.write(markdown_content)
 
     print(f"Model card generated and saved to {output_filename} in the directory {output_dir}")
+
 
 def format_counts_to_markdown(counts_path):
     counts_df = pd.read_csv(counts_path)
     counts_df.rename(columns={counts_df.columns[0]: "Class"}, inplace=True)
     markdown_table = counts_df.to_markdown(index=False)
     return markdown_table
+
 
 def format_transforms_to_markdown(transforms_dict):
     transforms_markdown = "\n"
@@ -167,10 +190,15 @@ def format_transforms_to_markdown(transforms_dict):
         transforms_markdown += "\n"
     return transforms_markdown
 
-def format_hyperparameters_to_markdown(config):
+
+def format_hyperparameters_to_markdown(config, all_results):
+    epoch = all_results.get("epoch", None)
+    if epoch == None:
+        epoch = config.get('num_epochs', 'Not specified')
+
     markdown = "\n"
     markdown += "The following hyperparameters were used during training:\n\n"
-    markdown += f"- **Number of Epochs**: {config.get('num_epochs', 'Not specified')}\n"
+    markdown += f"- **Number of Epochs**: {epoch}\n"
     markdown += f"- **Learning Rate**: {config.get('initial_learning_rate', 'Not specified')}\n"
     markdown += f"- **Train Batch Size**: {config.get('train_batch_size', 'Not specified')}\n"
     markdown += f"- **Eval Batch Size**: {config.get('eval_batch_size', 'Not specified')}\n"
@@ -179,6 +207,7 @@ def format_hyperparameters_to_markdown(config):
     markdown += f"- **Freeze Encoder**: {'Yes' if config.get('freeze_encoder', True) else 'No'}\n"
     markdown += f"- **Data Augmentation**: {'Yes' if config.get('data_augmentation', True) else 'No'}\n"
     return markdown
+
 
 def format_carbon_footprint_to_markdown(config):
     markdown = "\n"
@@ -193,6 +222,7 @@ def format_carbon_footprint_to_markdown(config):
     else:
         markdown += "No carbon footprint data available.\n"
     return markdown
+
 
 def format_framework_versions_to_markdown():
     transformers_version = transformers.__version__
