@@ -119,6 +119,8 @@ Where `[OPTIONS]` can include:
 - `--freeze_flag`: Boolean to indicate if the model backbone should be frozen.
 - `--data_aug_flag`: Boolean to enable or disable data augmentation.
 - `--test_data_flag`: Boolean to test the workflow on a small subset of data, set to True to enable it.
+- `--enable_web`: Boolean to enable the connection to the web, set to False to disable it.
+- `--resume`: Boolean to resume training from the last checkpoint. If set to True, MODEL_NAME and MODEL_PATH must be provided in the config file.
 
 ## Team
 
