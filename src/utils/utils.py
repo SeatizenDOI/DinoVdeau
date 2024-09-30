@@ -20,7 +20,8 @@ def get_session_name_and_ouput_dir(args: Namespace, config_env: dict[str, str]) 
     """ Return session_name and output_dir computed by args. """
 
     today = date.today().strftime("%Y_%m_%d")
-    model_size = args.model_name.split("/")[1][args.model_name.find("-")+1:]
+    model_without_enterprise = args.model_name.split("/")[1]
+    model_size = model_without_enterprise[model_without_enterprise.find("-")+1:]
     freeze = 'unfreeze' if args.no_freeze else 'freeze'
     test_data = "prova_" if args.test_data else ""
     training_type = "_monolabel" if args.training_type == "monolabel" else ""
