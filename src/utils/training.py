@@ -6,8 +6,10 @@ from argparse import Namespace
 from datasets import DatasetDict
 from sklearn.metrics import f1_score, accuracy_score
 from transformers import TrainingArguments, Trainer, EarlyStoppingCallback, EvalPrediction
+from sklearn.metrics import f1_score, accuracy_score, mean_squared_error, mean_absolute_error, r2_score, explained_variance_score
 
 from ..model.model_setup import ClassificationType, get_training_type_from_args
+from .F1PerClassManager import parse_target_scale_from_input, TargetScale
 
 
 class MyTrainer(Trainer):
@@ -60,9 +62,26 @@ def compute_metrics_multilabel(p: EvalPrediction) -> dict:
         'accuracy': accuracy_score(y_true, y_pred)
     }
 
+def compute_metrics_multilabel_medium_scale(p: EvalPrediction):
+    preds = p.predictions[0] if isinstance(p.predictions, tuple) else p.predictions
 
-def get_compute_metrics_for_training_type(training_type: ClassificationType):
-    return compute_metrics_multilabel if training_type == ClassificationType.MULTILABEL else compute_metrics_monolabel
+    sigmoid = torch.nn.Sigmoid()
+    y_pred = sigmoid(torch.Tensor(preds))
+    y_true = p.label_ids
+
+    mse = mean_squared_error(y_true, y_pred)
+    return {
+        'mse': mse,
+        'rmse': np.sqrt(mse),
+        'mae': mean_absolute_error(y_true, y_pred),
+        'r2': r2_score(y_true, y_pred),
+        'explained_variance':  explained_variance_score(y_true, y_pred)
+    }
+
+def get_compute_metrics_for_training_type(training_type: ClassificationType, target_scale: TargetScale):
+    if training_type == ClassificationType.MONOLABEL: return compute_metrics_monolabel
+    # TODO Change  when more than two options.
+    return compute_metrics_multilabel_medium_scale if target_scale == TargetScale.MEDIUM_SCALE else compute_metrics_multilabel
 
 
 def get_collate_fn_from_training_type(training_type: ClassificationType):
@@ -72,6 +91,7 @@ def get_collate_fn_from_training_type(training_type: ClassificationType):
 def setup_trainer(args: Namespace, model, ds: DatasetDict, dummy_feature_extractor, output_dir: Path) -> MyTrainer:
     
     training_type = get_training_type_from_args(args)
+    target_scale = parse_target_scale_from_input(args)
 
     training_args = TrainingArguments(
         output_dir = output_dir,  
@@ -96,7 +116,7 @@ def setup_trainer(args: Namespace, model, ds: DatasetDict, dummy_feature_extract
     optimizer = torch.optim.Adam(model.parameters(), lr=args.initial_learning_rate, weight_decay=args.weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=args.factor_lr_scheduler, patience=args.patience_lr_scheduler)
     early_stop = EarlyStoppingCallback(early_stopping_patience = args.early_stopping_patience)
-    compute_metrics = get_compute_metrics_for_training_type(training_type)
+    compute_metrics = get_compute_metrics_for_training_type(training_type, target_scale)
     collate_fn = get_collate_fn_from_training_type(training_type)
 
     trainer = MyTrainer(

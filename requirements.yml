@@ -1,4 +1,4 @@
-name: dinovdeau_env
+name: dinovdeau2_env
 channels:
   - conda-forge
   - defaults
@@ -9,7 +9,8 @@ dependencies:
       - pandas
       - kornia
       - datasets
-      - transformers
+      -huggingface-hub==0.23.1
+      - transformers==4.41.0
       - scikit-learn
       - codecarbon
       - tensorboardX
