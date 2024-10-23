@@ -34,21 +34,22 @@ This repository is organized as follows to facilitate model training and evaluat
 
 ```
 .
-├── config
-│   ├── arguments.py           # Defines command-line arguments for training
-├── config.json                # General configuration for training parameters
-├── data
-│   ├── data_loading.py        # Handles data loading
-│   ├── data_preprocessing.py  # Preprocesses data for model input
-├── main.py                    # Main script to start training and evaluation
-├── model
-│   ├── model_setup.py         # Sets up the model architecture and configuration
-├── README.md                  # Project documentation and instructions
-├── requirements.yml           # Conda environment file to reproduce the project environment
-└── utils
-    ├── evaluation.py          # Evaluation utilities for model performance
-    ├── training.py            # Utilities to facilitate the training process
-    └── utils.py               # General utilities for model card.
+├── config.json                         # General configuration for training parameters
+├── main.py                             # Main script to start training and evaluation with command-line arguments for training
+├── README.md                           # Project documentation and instructions
+├── requirements.yml                    # Conda environment file to reproduce the project environment
+└── src
+    ├── data
+    │   ├── data_loading.py             # Handles data loading
+    │   └── data_preprocessing.py       # Preprocesses data for model input
+    ├── model
+    │   └── model_setup.py              # Sets up the model architecture and configuration
+    └── utils 
+        ├── evaluation.py               # Evaluation utilities for model performance
+        ├── F1PerClassManager.py        # Manage to get the correct function to match the arguments.
+        ├── model_card_generator.py     # Tools to generate model card on hugging face.
+        ├── training.py                 # Utilities to facilitate the training process
+        └── utils.py                    # General utilities for model card.
 ```
 
 ## Major Frameworks and Libraries
