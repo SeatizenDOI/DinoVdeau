@@ -31,13 +31,14 @@ def logits_to_probs(predictions: np.ndarray) -> list:
     return [sigmoid(pred) for pred in predictions]
 
 
-def calculate_scores(y_true, y_probs):
+def compute_best_threshold(y_true, y_probs):
 
     best_precision, best_threshold = 0.0, 0.0
 
     for threshold in np.arange(0, 1, 0.001):
         y_pred = [1 if prob > threshold else 0 for prob in y_probs]
-        precision = f1_score(y_true = y_true, y_pred = y_pred, zero_division=0.0)
+        y_true_bin = [1 if prob > threshold else 0 for prob in y_true]
+        precision = f1_score(y_true = y_true_bin, y_pred = y_pred, zero_division=0.0)
        
         if precision > best_precision:
             best_precision, best_threshold = precision, threshold
@@ -57,7 +58,7 @@ def generate_threshold(trainer: MyTrainer, ds_val: Dataset, output_dir: Path, cl
         probs_current_class = [prob[i] for prob in probabilities]   
         label_current_class = [label[i] for label in labels]
 
-        best_precision, best_threshold = calculate_scores(label_current_class, probs_current_class)
+        best_precision, best_threshold = compute_best_threshold(label_current_class, probs_current_class)
         vec_best_threshold.append(np.round(best_threshold, 3))
 
     threshold_dict_path = Path(output_dir, "threshold.json")

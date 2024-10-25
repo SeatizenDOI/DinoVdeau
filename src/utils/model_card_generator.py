@@ -31,11 +31,12 @@ def format_training_results_to_markdown(trainer_state: dict) -> str:
 
 
 def extract_test_results(test_results: dict) -> tuple[float, float, float, float]:
-    eval_loss = test_results.get('eval_loss', 0.0)
-    f1_micro = test_results.get('eval_f1_micro', 0.0)
-    f1_macro = test_results.get('eval_f1_macro', 0.0)
-    accuracy = test_results.get('eval_accuracy', 0.0)
+    eval_loss = test_results.get('eval_loss', test_results.get('test_loss', 0.0))
+    f1_micro = test_results.get('eval_f1_micro', test_results.get('test_f1_micro', 0.0))
+    f1_macro = test_results.get('eval_f1_macro', test_results.get('test_f1_macro', 0.0))
+    accuracy = test_results.get('eval_accuracy', test_results.get('test_accuracy', 0.0))
     return eval_loss, f1_micro, f1_macro, accuracy
+
 
 
 def save_hyperparameters_to_config(output_dir: Path, args, emissions: float | None) -> None:

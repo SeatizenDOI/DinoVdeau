@@ -8,7 +8,7 @@ from datasets import Dataset
 from argparse import Namespace
 from abc import ABC, abstractmethod
 from transformers import EvalPrediction, TrainingArguments, Trainer
-from sklearn.metrics import f1_score, roc_auc_score, accuracy_score, mean_squared_error, mean_absolute_error, r2_score, explained_variance_score
+from sklearn.metrics import f1_score, accuracy_score, mean_squared_error, mean_absolute_error, r2_score, explained_variance_score
 
 # Enum to map target_scale.
 class TargetScale(Enum):
@@ -32,13 +32,13 @@ def parse_target_scale_from_input(args: Namespace) -> TargetScale:
 class F1PerClassManager:
     """ Manager to choose the correct F1PerClass based on target_scale. """
 
-    def __init__(self, target_scale: TargetScale, thresholds: dict, classes_names: list) -> None:
+    def __init__(self, target_scale: TargetScale, thresholds: dict, classes_names: list, id2label: dict) -> None:
         self.f1_score_manager: F1PerClassBase | None = None
 
         if target_scale == TargetScale.FINE_SCALE:
-            self.f1_score_manager = F1PerClassFineScale(thresholds, classes_names)
+            self.f1_score_manager = F1PerClassFineScale(thresholds, classes_names, id2label)
         elif target_scale == TargetScale.MEDIUM_SCALE:
-            self.f1_score_manager = F1PerScoreMediumScale(thresholds, classes_names)
+            self.f1_score_manager = F1PerClassMediumScale(thresholds, classes_names, id2label)
         # TODO implement LargeScale
     
 
@@ -88,9 +88,10 @@ class F1PerClassBase(ABC):
 class F1PerClassFineScale(F1PerClassBase):
     """ F1PerClass for fine scale target. """
 
-    def __init__(self, thresholds: dict, classes_names: list) -> None:
+    def __init__(self, thresholds: dict, classes_names: list, id2label: dict) -> None:
         self.thresholds = thresholds
         self.classes_names = classes_names
+        self.id2label = id2label
         super().__init__()
 
 
@@ -115,8 +116,6 @@ class F1PerClassFineScale(F1PerClassBase):
             'f1_macro': f1_score(y_true=y_true, y_pred=y_pred, average='macro'),
             #  If None, the scores for each class are returned.
             'f1_per_class': f1_score(y_true=y_true, y_pred=y_pred, average=None),
-            # In multi-label classification, the roc_auc_score function is extended by averaging over the labels
-            'roc_auc': roc_auc_score(y_true, y_pred, average = 'micro'),
             # In multilabel classification, the function returns the subset accuracy. 
             # If the entire set of predicted labels for a sample strictly match with the true set of labels, 
             # then the subset accuracy is 1.0; otherwise it is 0.0.
@@ -138,12 +137,13 @@ class F1PerClassFineScale(F1PerClassBase):
             json.dump(f1_scores_dict, outfile)
         
     
-class F1PerScoreMediumScale(F1PerClassBase):
+class F1PerClassMediumScale(F1PerClassBase):
     """ F1PerClass for medium scale target. """
 
-    def __init__(self, thresholds: dict, classes_names: list) -> None:
+    def __init__(self, thresholds: dict, classes_names: list, id2label: dict) -> None:
         self.thresholds = thresholds
         self.classes_names = classes_names
+        self.id2label = id2label
         super().__init__()
     
 
@@ -152,6 +152,26 @@ class F1PerScoreMediumScale(F1PerClassBase):
         y_pred = sigmoid(torch.Tensor(predictions))
         y_true = labels
 
+        # y_pred_binary, y_true_bin = [], []
+
+        # for batch_i in range(len(y_pred)):
+        #     y_pred_binary_batch, y_true_binary_batch = [], []
+        #     for i in range(len(y_pred[batch_i])):
+        #         y_true_binary_batch.append(1 if y_true[batch_i][i] > self.thresholds[self.id2label[i]] else 0)
+        #         y_pred_binary_batch.append(1 if y_pred[batch_i][i] > self.thresholds[self.id2label[i]] else 0)
+        #     y_pred_binary.append(y_pred_binary_batch)
+        #     y_true_bin.append(y_true_binary_batch)
+
+        # y_true_bin = [1 if prob > self.thresholds[list(self.thresholds)[i]] else 0 for i, prob in enumerate(y_true)]
+
+        # # Initialize binary predictions array with zeros
+        # y_pred_binary = np.zeros(y_pred.shape)
+        # # compute binary metrics also in the probability case
+        #         # next, use threshold to turn them into integer predictions
+        # for i, class_name in enumerate(self.thresholds.keys()):
+        #     threshold = self.thresholds[class_name]
+        #     y_pred_binary[:, i] = np.where(y_pred[:, i] >= threshold, 1, 0)
+
         mse = mean_squared_error(y_true, y_pred)
         return {
             'mse': mse,
@@ -159,11 +179,21 @@ class F1PerScoreMediumScale(F1PerClassBase):
             'rmse': np.sqrt(mse),
             'mae': mean_absolute_error(y_true, y_pred),
             'r2': r2_score(y_true, y_pred),
-            'explained_variance': explained_variance_score(y_true, y_pred)
+            'explained_variance': explained_variance_score(y_true, y_pred),
+            # Calculate metrics globally by counting the total true positives, false negatives and false positives.
+            #'f1_micro': f1_score(y_true=y_true_bin, y_pred=y_pred_binary, average='micro'),
+            # Calculate metrics for each label, and find their unweighted mean. This does not take label imbalance into account.
+            #'f1_macro': f1_score(y_true=y_true_bin, y_pred=y_pred_binary, average='macro'),
+            #  If None, the scores for each class are returned.
+            #'f1_per_class': f1_score(y_true=y_true_bin, y_pred=y_pred_binary, average=None),
+            # In multilabel classification, the function returns the subset accuracy. 
+            # If the entire set of predicted labels for a sample strictly match with the true set of labels, 
+            # then the subset accuracy is 1.0; otherwise it is 0.0.
+            #'accuracy': accuracy_score(y_true_bin, y_pred_binary)
         }
     
 
-    def compute_metrics_with_thresholds(self, probability_annotations, predictions):
+    def compute_metrics_with_thresholds(self, predictions, probability_annotations):
 
         # Transform probabilities into binary values based on thresholds
         binary_annotations, binary_predictions = [], []
@@ -172,33 +202,46 @@ class F1PerScoreMediumScale(F1PerClassBase):
             binary_annotation, binary_prediction = [], []
 
             for j in range(len(probability_annotations[i])):
-                class_name = self.classes_names[j]  # Get the class name using index j
-                threshold = self.thresholds.get(class_name, 0.5)
-                binary_annotation.append(1 if probability_annotations[i][j] >= threshold else 0)
-                binary_prediction.append(1 if predictions[i][j] >= threshold else 0)
+                binary_annotation.append(1 if probability_annotations[i][j] > self.thresholds[self.id2label[j]] else 0)
+                binary_prediction.append(1 if predictions[i][j] > self.thresholds[self.id2label[j]] else 0)
 
             binary_annotations.append(binary_annotation)
             binary_predictions.append(binary_prediction)
 
-        # Compute F1 score
-        overall_f1 = f1_score(binary_annotations, binary_predictions, average='micro')
-        f1_per_class = f1_score(binary_annotations, binary_predictions, average=None)
-
         # Return results
         return {
-            'overall_f1': overall_f1,
-            'f1_per_class': f1_per_class
+            # Calculate metrics globally by counting the total true positives, false negatives and false positives.
+            'f1_micro': f1_score(y_true=binary_annotations, y_pred=binary_predictions, average='micro'),
+            # Calculate metrics for each label, and find their unweighted mean. This does not take label imbalance into account.
+            'f1_macro': f1_score(y_true=binary_annotations, y_pred=binary_predictions, average='macro'),
+            #  If None, the scores for each class are returned.
+            'f1_per_class': f1_score(y_true=binary_annotations, y_pred=binary_predictions, average=None),
+            # In multilabel classification, the function returns the subset accuracy. 
+            # If the entire set of predicted labels for a sample strictly match with the true set of labels, 
+            # then the subset accuracy is 1.0; otherwise it is 0.0.
+            'accuracy': accuracy_score(binary_annotations, binary_predictions)
         }
     
     
     def compute_metrics(self, p: EvalPrediction):
         preds = p.predictions[0] if isinstance(p.predictions, tuple) else p.predictions
         result = self.continuous_metrics(preds, p.label_ids)
-        result_binary = self.compute_metrics_with_thresholds(p.label_ids, preds)
+        result_binary = self.compute_metrics_with_thresholds(preds, p.label_ids)
         # Merging both dictionaries
         merged_result = {**result, **result_binary}
+        # Convert all ndarray elements to lists
+        for key, value in merged_result.items():
+            if isinstance(value, np.ndarray):
+                merged_result[key] = value.tolist()
         return merged_result
     
 
     def create_f1_score_per_class(self, metrics: Dict[str, float], output_dir: Path):
-        print("Not Implemented")
+        test_f1_per_class_dict_path = Path(output_dir, "test_f1_per_class.json")
+        f1_scores_dict = dict(zip(self.classes_names, metrics["test_f1_per_class"]))
+        test_results_dict_path = Path(output_dir, "test_results.json")
+        print(metrics)
+        with open(test_f1_per_class_dict_path, "w") as outfile: 
+            json.dump(f1_scores_dict, outfile)
+        with open(test_results_dict_path, "w") as outfile: 
+            json.dump(dict(metrics), outfile)
