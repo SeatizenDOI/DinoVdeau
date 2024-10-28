@@ -64,7 +64,7 @@ def generate_threshold(trainer: MyTrainer, ds_val: Dataset, output_dir: Path, cl
     vec_best_threshold = []
     for i in range(0, len(classes_names)) :
         probs_current_class = [prob[i] for prob in probabilities]   
-        label_current_class = [label[i] for label in labels]
+        label_current_class = [label[i] for label in labels] if isinstance(labels[0], list) else labels
 
         best_precision, best_threshold = compute_best_threshold(label_current_class, probs_current_class)
         vec_best_threshold.append(np.round(best_threshold, 3))
