@@ -1,4 +1,3 @@
-import json
 import time
 from pathlib import Path
 from argparse import ArgumentParser, Namespace
@@ -11,7 +10,7 @@ from src.utils.evaluation import evaluate_and_save, generate_threshold
 from src.utils.F1PerClassManager import F1PerClassManager, parse_target_scale_from_input
 from src.model.model_setup import setup_model, get_training_type_from_args, ClassificationType
 from src.utils.model_card_generator import generate_model_card, save_hyperparameters_to_config
-from src.utils.utils import print_gpu_is_used, send_data_to_hugging_face, get_session_name_and_ouput_dir
+from src.utils.utils import print_gpu_is_used, send_data_to_hugging_face, get_session_name_and_ouput_dir, get_config_env
     
 def get_args() -> Namespace:
     parser = ArgumentParser(description="DINOv2 Image Classification Training Script")
@@ -52,13 +51,7 @@ def main(args: Namespace) -> None:
     # -- Load and parse arguments.
 
     # Load config json.
-    config_path = Path(args.config_path)
-    if not config_path.exists() or not config_path.is_file():
-        print(f"Config file not found for path {config_path}")
-        return
-
-    with open(config_path, 'r') as file:
-        config_env: dict[str, str] = json.load(file)
+    config_env = get_config_env(args.config_path)
 
     print_gpu_is_used()
 
@@ -66,6 +59,7 @@ def main(args: Namespace) -> None:
 
     # Create new model name.
     training_type = get_training_type_from_args(args)
+
     session_name, output_dir, resume_from_checkpoint, latest_checkpoint = get_session_name_and_ouput_dir(args, config_env)
 
     print("\ninfo : Model name is ", session_name)
@@ -102,12 +96,13 @@ def main(args: Namespace) -> None:
     print("\ninfo : Evaluating model on test set...\n")
     evaluate_and_save(args, trainer, ds["test"])
 
-    # Generate threshold file.
-    print("\ninfo : Create threshold file on val set...\n")
-    thresholds = generate_threshold(trainer, ds["validation"], output_dir, classes_names)
-
     # Generate f1 score per class based on target scale.
     if training_type == ClassificationType.MULTILABEL:
+        
+        # Generate threshold file.
+        print("\ninfo : Create threshold file on val set...\n")
+        thresholds = generate_threshold(trainer, ds["validation"], output_dir, classes_names)
+        
         print("\ninfo : Generate f1 score per class based on target scale...\n")
         target_scale = parse_target_scale_from_input(args)
         f1Manager = F1PerClassManager(target_scale, thresholds, classes_names, id2label)

@@ -57,14 +57,13 @@ def compute_best_threshold(y_true, y_probs):
 def generate_threshold(trainer: MyTrainer, ds_val: Dataset, output_dir: Path, classes_names: list) -> dict:
 
     predictions, labels, metrics = trainer.predict(ds_val)
-
     probabilities = logits_to_probs(predictions)
 
     # compute thresholds for each class on the base of the f1 score
     vec_best_threshold = []
     for i in range(0, len(classes_names)) :
         probs_current_class = [prob[i] for prob in probabilities]   
-        label_current_class = [label[i] for label in labels] if isinstance(labels[0], list) else labels
+        label_current_class = [label[i] for label in labels]
 
         best_precision, best_threshold = compute_best_threshold(label_current_class, probs_current_class)
         vec_best_threshold.append(np.round(best_threshold, 3))

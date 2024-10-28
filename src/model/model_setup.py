@@ -1,9 +1,9 @@
 import enum
-import json
 import torch.nn as nn
-from pathlib import Path
 from argparse import Namespace
 from transformers import AutoConfig, AutoModelForImageClassification
+
+from ..utils.utils import get_config_env
 
 class ClassificationType(enum.Enum):
     MULTILABEL = "multi_label_classification"
@@ -39,7 +39,7 @@ def setup_model(args: Namespace, label_names: list, id2label: dict, label2id: di
         num_labels=len(label_names),
         id2label=id2label,
         label2id=label2id,
-        problem_type=training_type.value,
+        problem_type=training_type.value, # Multi or monolabel
         image_size=args.image_size
     )
     # Get hidden_size number from model
@@ -53,12 +53,7 @@ def setup_model(args: Namespace, label_names: list, id2label: dict, label2id: di
         model = AutoModelForImageClassification.from_pretrained(args.model_name, config=model_config, ignore_mismatched_sizes=True)
     else:
         # Load the model from a local directory if web is disabled
-        config_path = Path(args.config_path)
-        if not config_path.exists() or not config_path.is_file():
-            raise NameError(f"Config file not found for path {config_path}")
-            
-        with open(config_path, 'r') as file:
-            config_env: dict[str, str] = json.load(file)
+        config_env = get_config_env(args.config_path)
 
         model_name = config_env["LOCAL_MODEL_PATH"] if config_env["LOCAL_MODEL_PATH"] != '' else args.model_name
 
