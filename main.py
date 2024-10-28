@@ -1,7 +1,6 @@
 import json
 import time
 from pathlib import Path
-from codecarbon import EmissionsTracker
 from argparse import ArgumentParser, Namespace
 from huggingface_hub import HfFolder, HFSummaryWriter
 
@@ -77,7 +76,7 @@ def main(args: Namespace) -> None:
         logger = HFSummaryWriter(repo_id=session_name, logdir=str(Path(output_dir, "runs")), commit_every=5)
     
     # Setup dataset.
-    ds, dummy_feature_extractor, train_df = create_datasets(config_env["ANNOTATION_PATH"], args, config_env["IMG_PATH"], output_dir)
+    ds, dummy_feature_extractor, train_df, counts_df = create_datasets(config_env["ANNOTATION_PATH"], args, config_env["IMG_PATH"], output_dir)
     classes_names, id2label, label2id = generate_labels(train_df)
     
     # Setup model.
@@ -85,11 +84,6 @@ def main(args: Namespace) -> None:
 
     # Setup trainer.
     trainer = setup_trainer(args, model, ds, dummy_feature_extractor, output_dir)
-    
-    if not args.disable_web:
-        # Track carbon emissions
-        tracker = EmissionsTracker(log_level="WARNING", save_to_file=False, allow_multiple_runs=True)
-        tracker.start()
     
     # Start training.
     print("\ninfo : Training model...\n")
@@ -120,16 +114,14 @@ def main(args: Namespace) -> None:
         f1Manager.generate(ds["test"], output_dir, model)
 
     # Save hyperparameters.
-    emissions = None if args.disable_web else tracker.stop()
-    save_hyperparameters_to_config(output_dir, args, emissions)
+    save_hyperparameters_to_config(output_dir, args)
 
     # Generate model card.
-    counts_path = Path(config_env["ANNOTATION_PATH"], "count_df.csv")
     files = ['train_results.json', 'test_results.json', 'trainer_state.json', 'all_results.json', 'config.json', 'transforms.json']
     data_paths = [Path(output_dir, file) for file in files]
     
     print("info : Generating model card...\n")
-    generate_model_card(data_paths, counts_path, output_dir, args)
+    generate_model_card(data_paths, counts_df, output_dir, args)
 
     # Send data to hugging face if needed.
     if args.disable_web: return 

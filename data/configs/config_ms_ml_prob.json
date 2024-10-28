@@ -1,0 +1,7 @@
+{
+    "ANNOTATION_PATH": "./data/annotations/ms_ml_prob/",
+    "IMG_PATH": "./data/images/drone",
+    "MODEL_PATH": "./models/",
+    "MODEL_NAME": "",
+    "LOCAL_MODEL_PATH": ""
+}

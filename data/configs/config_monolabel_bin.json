@@ -1,0 +1,7 @@
+{
+    "ANNOTATION_PATH": "./data/annotations/fs_monolabel_bin/",
+    "IMG_PATH": "./data/images/monolabel",
+    "MODEL_PATH": "./models/",
+    "MODEL_NAME": "",
+    "LOCAL_MODEL_PATH": ""
+}

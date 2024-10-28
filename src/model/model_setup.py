@@ -1,6 +1,7 @@
 import enum
 import json
 import torch.nn as nn
+from pathlib import Path
 from argparse import Namespace
 from transformers import AutoConfig, AutoModelForImageClassification
 
@@ -52,10 +53,16 @@ def setup_model(args: Namespace, label_names: list, id2label: dict, label2id: di
         model = AutoModelForImageClassification.from_pretrained(args.model_name, config=model_config, ignore_mismatched_sizes=True)
     else:
         # Load the model from a local directory if web is disabled
-        with open("config.json", 'r') as file:
-            config_env = json.load(file)
+        config_path = Path(args.config_path)
+        if not config_path.exists() or not config_path.is_file():
+            raise NameError(f"Config file not found for path {config_path}")
+            
+        with open(config_path, 'r') as file:
+            config_env: dict[str, str] = json.load(file)
 
-        model = AutoModelForImageClassification.from_pretrained(config_env["LOCAL_MODEL_PATH"], config=model_config, ignore_mismatched_sizes=True)
+        model_name = config_env["LOCAL_MODEL_PATH"] if config_env["LOCAL_MODEL_PATH"] != '' else args.model_name
+
+        model = AutoModelForImageClassification.from_pretrained(model_name, config=model_config, ignore_mismatched_sizes=True)
 
     if not(args.no_custom_head):
         model.classifier = create_head(hidden_size * 2, model_config.num_labels)
