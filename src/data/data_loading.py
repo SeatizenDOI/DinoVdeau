@@ -25,7 +25,7 @@ def load_datasets(df_folder: str, test_data_flag: bool) -> tuple[pd.DataFrame, p
 
     if test_data_flag :
         print("info : Working on a small dataset for test purposes...\n")
-        N = 50
+        N = 10
         train_df = train_df.iloc[:N]
         val_df = val_df.iloc[:N]
         test_df = test_df.iloc[:N]
