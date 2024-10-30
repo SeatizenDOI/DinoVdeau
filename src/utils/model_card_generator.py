@@ -39,7 +39,7 @@ def extract_test_results(test_results: dict) -> tuple[float, float, float, float
 
 
 
-def save_hyperparameters_to_config(output_dir: Path, args, emissions: float | None) -> None:
+def save_hyperparameters_to_config(output_dir: Path, args) -> None:
 
     # Regroup and save hyperparameters
     hyperparameters = {
@@ -56,15 +56,6 @@ def save_hyperparameters_to_config(output_dir: Path, args, emissions: float | No
         'data_augmentation':not(args.no_data_aug),
         'num_epochs': args.epochs
     }
-
-    if emissions != None:
-        hyperparameters['emissions_data'] = {
-            'emissions': emissions,
-            'source': "Code Carbon",
-            'training_type': "fine-tuning",
-            'geographical_location': "Brest, France",
-            'hardware_used': "NVIDIA Tesla V100 PCIe 32 Go"
-        }
     
     # Load hyperparameters.
     config_path, config = Path(output_dir, 'config.json'), {}
@@ -80,7 +71,7 @@ def save_hyperparameters_to_config(output_dir: Path, args, emissions: float | No
     print("Updated configuration saved to config.json")
 
 
-def generate_model_card(data_paths: list[Path], counts_path: Path, output_dir: Path, args: Namespace) -> None:
+def generate_model_card(data_paths: list[Path], counts_df: pd.DataFrame, output_dir: Path, args: Namespace) -> None:
 
     data = {}
     for data_path in data_paths:
@@ -91,12 +82,11 @@ def generate_model_card(data_paths: list[Path], counts_path: Path, output_dir: P
 
     markdown_training_results = format_training_results_to_markdown(data["trainer_state"])
     eval_loss, f1_micro, f1_macro, accuracy = extract_test_results(data["test_results"])
-    markdown_counts = format_counts_to_markdown(counts_path)
+    markdown_counts = counts_df.to_markdown(index=False)
     transforms_markdown = format_transforms_to_markdown(data["transforms"])
     if data["config"].get('data_augmentation') == False :
         transforms_markdown = "No augmentation"
     hyperparameters_markdown = format_hyperparameters_to_markdown(data["config"], data["all_results"])
-    carbon_footprint_markdown = format_carbon_footprint_to_markdown(data["config"])
     framework_versions_markdown = format_framework_versions_to_markdown()  
 
     markdown_content = f"""
@@ -156,11 +146,6 @@ Data were augmented using the following transformations :
 
 ---
 
-# CO2 Emissions
-{carbon_footprint_markdown}
-
----
-
 # Framework Versions
 {framework_versions_markdown}
 """
@@ -170,13 +155,6 @@ Data were augmented using the following transformations :
         file.write(markdown_content)
 
     print(f"Model card generated and saved to {output_filename} in the directory {output_dir}")
-
-
-def format_counts_to_markdown(counts_path):
-    counts_df = pd.read_csv(counts_path)
-    counts_df.rename(columns={counts_df.columns[0]: "Class"}, inplace=True)
-    markdown_table = counts_df.to_markdown(index=False)
-    return markdown_table
 
 
 def format_transforms_to_markdown(transforms_dict):
@@ -207,21 +185,6 @@ def format_hyperparameters_to_markdown(config, all_results):
     markdown += f"- **LR Scheduler Type**: {config.get('lr_scheduler_type', {}).get('type', 'Not specified')} with a patience of {config.get('patience_lr_scheduler', 'Not specified')} epochs and a factor of {config.get('factor_lr_scheduler', 'Not specified')}\n"
     markdown += f"- **Freeze Encoder**: {'Yes' if config.get('freeze_encoder', True) else 'No'}\n"
     markdown += f"- **Data Augmentation**: {'Yes' if config.get('data_augmentation', True) else 'No'}\n"
-    return markdown
-
-
-def format_carbon_footprint_to_markdown(config):
-    markdown = "\n"
-    if 'emissions_data' in config:
-        emissions_data = config['emissions_data']
-        markdown += "The estimated CO2 emissions for training this model are documented below:\n\n"
-        markdown += f"- **Emissions**: {emissions_data.get('emissions', 'Not specified')} grams of CO2\n"
-        markdown += f"- **Source**: {emissions_data.get('source', 'Not specified')}\n"
-        markdown += f"- **Training Type**: {emissions_data.get('training_type', 'Not specified')}\n"
-        markdown += f"- **Geographical Location**: {emissions_data.get('geographical_location', 'Not specified')}\n"
-        markdown += f"- **Hardware Used**: {emissions_data.get('hardware_used', 'Not specified')}\n"
-    else:
-        markdown += "No carbon footprint data available.\n"
     return markdown
 
 

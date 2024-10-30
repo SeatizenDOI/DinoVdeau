@@ -8,7 +8,7 @@ from datasets import Dataset
 from argparse import Namespace
 from abc import ABC, abstractmethod
 from transformers import EvalPrediction, TrainingArguments, Trainer
-from sklearn.metrics import f1_score, accuracy_score, mean_squared_error, mean_absolute_error, r2_score, explained_variance_score
+from sklearn.metrics import f1_score, accuracy_score, root_mean_squared_error, mean_absolute_error, r2_score, explained_variance_score
 
 # Enum to map target_scale.
 class TargetScale(Enum):
@@ -152,44 +152,14 @@ class F1PerClassMediumScale(F1PerClassBase):
         y_pred = sigmoid(torch.Tensor(predictions))
         y_true = labels
 
-        # y_pred_binary, y_true_bin = [], []
-
-        # for batch_i in range(len(y_pred)):
-        #     y_pred_binary_batch, y_true_binary_batch = [], []
-        #     for i in range(len(y_pred[batch_i])):
-        #         y_true_binary_batch.append(1 if y_true[batch_i][i] > self.thresholds[self.id2label[i]] else 0)
-        #         y_pred_binary_batch.append(1 if y_pred[batch_i][i] > self.thresholds[self.id2label[i]] else 0)
-        #     y_pred_binary.append(y_pred_binary_batch)
-        #     y_true_bin.append(y_true_binary_batch)
-
-        # y_true_bin = [1 if prob > self.thresholds[list(self.thresholds)[i]] else 0 for i, prob in enumerate(y_true)]
-
-        # # Initialize binary predictions array with zeros
-        # y_pred_binary = np.zeros(y_pred.shape)
-        # # compute binary metrics also in the probability case
-        #         # next, use threshold to turn them into integer predictions
-        # for i, class_name in enumerate(self.thresholds.keys()):
-        #     threshold = self.thresholds[class_name]
-        #     y_pred_binary[:, i] = np.where(y_pred[:, i] >= threshold, 1, 0)
-
-        mse = mean_squared_error(y_true, y_pred)
+        mse = root_mean_squared_error(y_true, y_pred)
         return {
             'mse': mse,
-            'mse_per_class': mean_squared_error(y_true, y_pred, multioutput = "raw_values"),
+            'mse_per_class': root_mean_squared_error(y_true, y_pred, multioutput = "raw_values"),
             'rmse': np.sqrt(mse),
             'mae': mean_absolute_error(y_true, y_pred),
             'r2': r2_score(y_true, y_pred),
             'explained_variance': explained_variance_score(y_true, y_pred),
-            # Calculate metrics globally by counting the total true positives, false negatives and false positives.
-            #'f1_micro': f1_score(y_true=y_true_bin, y_pred=y_pred_binary, average='micro'),
-            # Calculate metrics for each label, and find their unweighted mean. This does not take label imbalance into account.
-            #'f1_macro': f1_score(y_true=y_true_bin, y_pred=y_pred_binary, average='macro'),
-            #  If None, the scores for each class are returned.
-            #'f1_per_class': f1_score(y_true=y_true_bin, y_pred=y_pred_binary, average=None),
-            # In multilabel classification, the function returns the subset accuracy. 
-            # If the entire set of predicted labels for a sample strictly match with the true set of labels, 
-            # then the subset accuracy is 1.0; otherwise it is 0.0.
-            #'accuracy': accuracy_score(y_true_bin, y_pred_binary)
         }
     
 

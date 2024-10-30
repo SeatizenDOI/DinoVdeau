@@ -1,0 +1,120 @@
+name: Tests workflow
+
+on: [push, pull_request]
+
+jobs:
+  fs_ml_bin:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+  
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          activate-environment: dinovdeau_env
+          environment-file: requirements.yml
+          auto-activate-base: true
+      - run: |
+          conda init
+          conda activate dinovdeau_env
+          conda info
+          conda list
+          conda env list
+
+
+      - name: Run tests
+        run: |
+          python main.py --test_data --epochs 1 -bs 2 --config_path ./data/configs/config_ml_bin.json --disable_web
+
+  fs_monolabel_bin:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+  
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          activate-environment: dinovdeau_env
+          environment-file: requirements.yml
+          auto-activate-base: true
+      - run: |
+          conda init
+          conda activate dinovdeau_env
+          conda info
+          conda list
+          conda env list
+
+
+      - name: Run tests
+        run: |
+          python main.py --test_data --epochs 1 -bs 2 --config_path ./data/configs/config_monolabel_bin.json --disable_web -tt monolabel
+
+  ms_ml_bin:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+  
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          activate-environment: dinovdeau_env
+          environment-file: requirements.yml
+          auto-activate-base: true
+      - run: |
+          conda init
+          conda activate dinovdeau_env
+          conda info
+          conda list
+          conda env list
+
+
+      - name: Run tests
+        run: |
+          python main.py --test_data --epochs 1 -bs 2 --config_path ./data/configs/config_ms_ml_bin.json --disable_web
+
+  ms_ml_prob:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+  
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          activate-environment: dinovdeau_env
+          environment-file: requirements.yml
+          auto-activate-base: true
+      - run: |
+          conda init
+          conda activate dinovdeau_env
+          conda info
+          conda list
+          conda env list
+
+
+      - name: Run tests
+        run: |
+          python main.py --test_data --epochs 1 -bs 2 --config_path ./data/configs/config_ms_ml_prob.json --disable_web --target_scale medium_scale

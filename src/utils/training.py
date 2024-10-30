@@ -6,7 +6,7 @@ from argparse import Namespace
 from datasets import DatasetDict
 from sklearn.metrics import f1_score, accuracy_score
 from transformers import TrainingArguments, Trainer, EarlyStoppingCallback, EvalPrediction
-from sklearn.metrics import f1_score, accuracy_score, mean_squared_error, mean_absolute_error, r2_score, explained_variance_score
+from sklearn.metrics import f1_score, accuracy_score, root_mean_squared_error, mean_absolute_error, r2_score, explained_variance_score
 
 from ..model.model_setup import ClassificationType, get_training_type_from_args
 from .F1PerClassManager import parse_target_scale_from_input, TargetScale
@@ -69,7 +69,7 @@ def compute_metrics_multilabel_medium_scale(p: EvalPrediction):
     y_pred = sigmoid(torch.Tensor(preds))
     y_true = p.label_ids
 
-    mse = mean_squared_error(y_true, y_pred)
+    mse = root_mean_squared_error(y_true, y_pred)
     return {
         'mse': mse,
         'rmse': np.sqrt(mse),

@@ -30,16 +30,24 @@ def sigmoid(_outputs):
 def logits_to_probs(predictions: np.ndarray) -> list:
     return [sigmoid(pred) for pred in predictions]
 
-
 def compute_best_threshold(y_true, y_probs):
-
     best_precision, best_threshold = 0.0, 0.0
+
+    # Check if y_true is probabilistic (contains values other than 0 or 1)
+    is_probabilistic = any(value not in [0, 1] for value in y_true)
 
     for threshold in np.arange(0, 1, 0.001):
         y_pred = [1 if prob > threshold else 0 for prob in y_probs]
-        y_true_bin = [1 if prob > threshold else 0 for prob in y_true]
-        precision = f1_score(y_true = y_true_bin, y_pred = y_pred, zero_division=0.0)
-       
+
+        # If y_true is probabilistic, convert to binary values based on the threshold
+        if is_probabilistic:
+            y_true_bin = [1 if prob > threshold else 0 for prob in y_true]
+            precision = f1_score(y_true=y_true_bin, y_pred=y_pred, zero_division=0.0)
+        else:
+            # Use y_true directly as it's already binary
+            precision = f1_score(y_true=y_true, y_pred=y_pred, zero_division=0.0)
+
+        # Update best precision and threshold if current precision is higher
         if precision > best_precision:
             best_precision, best_threshold = precision, threshold
 
@@ -49,7 +57,6 @@ def compute_best_threshold(y_true, y_probs):
 def generate_threshold(trainer: MyTrainer, ds_val: Dataset, output_dir: Path, classes_names: list) -> dict:
 
     predictions, labels, metrics = trainer.predict(ds_val)
-
     probabilities = logits_to_probs(predictions)
 
     # compute thresholds for each class on the base of the f1 score

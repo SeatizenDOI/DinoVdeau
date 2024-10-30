@@ -25,7 +25,7 @@ def load_datasets(df_folder: str, test_data_flag: bool) -> tuple[pd.DataFrame, p
 
     if test_data_flag :
         print("info : Working on a small dataset for test purposes...\n")
-        N = 50
+        N = 10
         train_df = train_df.iloc[:N]
         val_df = val_df.iloc[:N]
         test_df = test_df.iloc[:N]
@@ -41,3 +41,17 @@ def generate_labels(train_df: pd.DataFrame) -> tuple[list, dict, dict]:
     label2id = { v: k for k, v in id2label.items()}
 
     return classes_names, id2label, label2id
+
+def generate_count_df(train_df: pd.DataFrame, test_df: pd.DataFrame, val_df: pd.DataFrame) -> pd.DataFrame:
+
+    train_counts = train_df.drop(columns=["FileName"]).sum().reset_index()
+    train_counts.columns = ["Class", "Occurrence"]
+    test_counts = test_df.drop(columns=["FileName"]).sum().reset_index()
+    test_counts.columns = ["Class", "Occurrence"]
+    val_counts = val_df.drop(columns=["FileName"]).sum().reset_index()
+    val_counts.columns = ["Class", "Occurrence"]
+
+    merged_df = train_counts.merge(test_counts, on="Class", suffixes=('_file1', '_file2')).merge(val_counts, on="Class")
+    merged_df["Occurrences"] = merged_df["Occurrence_file1"] + merged_df["Occurrence_file2"] + merged_df["Occurrence"]
+
+    return merged_df[["Class", "Occurrences"]]

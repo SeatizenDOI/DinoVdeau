@@ -1,4 +1,5 @@
 import os
+import json
 import torch
 from pathlib import Path
 from datetime import date
@@ -16,6 +17,17 @@ def print_gpu_is_used() -> None:
         print("GPU not available, using CPU instead.")
 
 
+def get_config_env(config_path: str) -> dict[str, str]:
+    """ Load config env """
+    config_path = Path(config_path)
+    if not config_path.exists() or not config_path.is_file():
+        raise NameError(f"Config file not found for path {config_path}")
+
+    with open(config_path, 'r') as file:
+        config_env: dict[str, str] = json.load(file)
+    
+    return config_env
+
 def get_session_name_and_ouput_dir(args: Namespace, config_env: dict[str, str]) -> tuple[str, Path, Path | None, Path | None] :
     """ Return session_name and output_dir computed by args. """
 
@@ -25,6 +37,7 @@ def get_session_name_and_ouput_dir(args: Namespace, config_env: dict[str, str]) 
     freeze = 'unfreeze' if args.no_freeze else 'freeze'
     test_data = "prova_" if args.test_data else ""
     training_type = "_monolabel" if args.training_type == "monolabel" else ""
+    # TODO Add datatype in name
     session_name = f"{args.new_model_name}-{model_size}-{today}-{test_data}batch-size{args.batch_size}_{freeze}{training_type}"
     output_dir = Path(config_env["MODEL_PATH"], session_name)
 
@@ -59,8 +72,7 @@ def send_data_to_hugging_face(session_name: str, output_dir: Path) -> None:
         repo_url = hf_api.create_repo(token=token, repo_id=repo_id, private=False, exist_ok=True)
         print(f"Repository URL: {repo_url}")
     except Exception as e:
-        print(f"Error creating repository: {e}")
-        raise
+        raise NameError(f"Error creating repository: {e}")
 
     all_files = [f for f in os.listdir(output_dir) if os.path.isfile(os.path.join(output_dir, f)) and f != "model.safetensors"]
 

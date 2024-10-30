@@ -15,7 +15,7 @@ from PIL import Image as PILImage
 from PIL import ImageFile as PILImageFile
 PILImageFile.LOAD_TRUNCATED_IMAGES = True
 
-from .data_loading import load_datasets
+from .data_loading import load_datasets, generate_count_df
 from ..model.model_setup import ClassificationType, get_training_type_from_args
 
 class PreProcess(nn.Module):
@@ -69,9 +69,10 @@ def save_transforms_to_json(train_transforms: nn.Sequential, val_transforms: nn.
         json.dump(transforms_dict, f, indent=4)
 
 
-def create_datasets(df_folder: str, args: Namespace, img_path: str, output_dir: Path) -> tuple[DatasetDict, any, list[dict]]:
+def create_datasets(df_folder: str, args: Namespace, img_path: str, output_dir: Path) -> tuple[DatasetDict, any, pd.DataFrame, pd.DataFrame]:
 
     train_df, val_df, test_df = load_datasets(df_folder, args.test_data)
+    count_df = generate_count_df(train_df, val_df, test_df)
     classification_type = get_training_type_from_args(args)
 
     train_data = load_and_preprocess_df(train_df, img_path, classification_type)
@@ -130,4 +131,4 @@ def create_datasets(df_folder: str, args: Namespace, img_path: str, output_dir: 
     prepared_ds["validation"] = ds["validation"].with_transform(preprocess_val)
     prepared_ds["test"] = ds["test"].with_transform(preprocess_val)
 
-    return prepared_ds, dummy_feature_extractor, train_df
+    return prepared_ds, dummy_feature_extractor, train_df, count_df

@@ -12,7 +12,6 @@ dependencies:
       - huggingface-hub==0.23.1
       - transformers==4.41.0
       - scikit-learn
-      - codecarbon
       - tensorboardX
       - accelerate
       - tabulate
