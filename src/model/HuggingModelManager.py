@@ -35,7 +35,7 @@ class HuggingModelManager():
         training_type = "_monolabel" if self.training_type == ClassificationType.MONOLABEL else ""
         label_type = "_probs" if self.label_type == LabelType.PROBS else ""
 
-        self.model_name = f"{self.args.new_model_name}-{model_size}-{today}-{test_data}batch-size{self.args.batch_size}_{freeze}{training_type}{label_type}"
+        self.model_name = f"{self.args.new_model_name}-{model_size}-{today}-{test_data}batch-size{self.args.batch_size}_{freeze}{training_type}"
         self.output_dir = Path(self.config_env["MODEL_PATH"], self.model_name)
 
         
