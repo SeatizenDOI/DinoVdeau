@@ -117,4 +117,4 @@ jobs:
 
       - name: Run tests
         run: |
-          python main.py --test_data --epochs 1 -bs 2 --config_path ./data/configs/config_ms_ml_prob.json --disable_web --target_scale medium_scale
+          python main.py --test_data --epochs 1 -bs 2 --config_path ./data/configs/config_ms_ml_prob.json --disable_web

@@ -4,9 +4,6 @@ import kornia as K
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from argparse import Namespace
-from transformers import AutoImageProcessor
-from datasets import Dataset, DatasetDict, Image as DatasetsImage
 
 import torch
 import torch.nn as nn
@@ -15,8 +12,7 @@ from PIL import Image as PILImage
 from PIL import ImageFile as PILImageFile
 PILImageFile.LOAD_TRUNCATED_IMAGES = True
 
-from .data_loading import load_datasets, generate_count_df
-from ..model.model_setup import ClassificationType, get_training_type_from_args
+from ..utils.enums import ClassificationType
 
 class PreProcess(nn.Module):
     def __init__(self) -> None:
@@ -67,68 +63,3 @@ def save_transforms_to_json(train_transforms: nn.Sequential, val_transforms: nn.
     }
     with open(filename, 'w') as f:
         json.dump(transforms_dict, f, indent=4)
-
-
-def create_datasets(df_folder: str, args: Namespace, img_path: str, output_dir: Path) -> tuple[DatasetDict, any, pd.DataFrame, pd.DataFrame]:
-
-    train_df, val_df, test_df = load_datasets(df_folder, args.test_data)
-    count_df = generate_count_df(train_df, val_df, test_df)
-    classification_type = get_training_type_from_args(args)
-
-    train_data = load_and_preprocess_df(train_df, img_path, classification_type)
-    val_data = load_and_preprocess_df(val_df, img_path, classification_type)
-    test_data = load_and_preprocess_df(test_df, img_path, classification_type)
-
-    ds_train = Dataset.from_list(train_data).cast_column("image", DatasetsImage())
-    ds_val = Dataset.from_list(val_data).cast_column("image", DatasetsImage())
-    ds_test = Dataset.from_list(test_data).cast_column("image", DatasetsImage())
-
-
-    ds = DatasetDict({
-        "train": ds_train,
-        "validation": ds_val,
-        "test": ds_test
-    })    
-
-    dummy_feature_extractor = AutoImageProcessor.from_pretrained(
-        args.model_name,
-        size={"height": args.image_size, "width": args.image_size},
-        do_center_crop=False, 
-        do_resize=True, 
-        do_rescale=True, 
-        do_normalize=True,
-    )    
-
-    train_transforms = nn.Sequential(
-        PreProcess(),
-        K.augmentation.Resize(size=(args.image_size, args.image_size)),
-        K.augmentation.RandomHorizontalFlip(p=0.25),
-        K.augmentation.RandomVerticalFlip(p=0.25),
-        K.augmentation.ColorJiggle(p=0.25),
-        K.augmentation.RandomPerspective(p=0.25),
-        K.augmentation.Normalize(mean=dummy_feature_extractor.image_mean, std=dummy_feature_extractor.image_std),
-    )
-
-    val_transforms = nn.Sequential(
-        PreProcess(),
-        K.augmentation.Resize(size=(args.image_size, args.image_size)),
-        K.augmentation.Normalize(mean=dummy_feature_extractor.image_mean, std=dummy_feature_extractor.image_std),
-    )   
-
-    tansforms_path = Path(output_dir, 'transforms.json')
-    save_transforms_to_json(train_transforms, val_transforms, tansforms_path)    
-    
-    def preprocess_train(example_batch):
-        example_batch["pixel_values"] = [train_transforms(image).squeeze() for image in example_batch["image"]]
-        return example_batch
-
-    def preprocess_val(example_batch):
-        example_batch["pixel_values"] = [val_transforms(image).squeeze() for image in example_batch["image"]]
-        return example_batch
-
-    prepared_ds = ds
-    prepared_ds["train"] = ds["train"].with_transform(preprocess_train)
-    prepared_ds["validation"] = ds["validation"].with_transform(preprocess_val)
-    prepared_ds["test"] = ds["test"].with_transform(preprocess_val)
-
-    return prepared_ds, dummy_feature_extractor, train_df, count_df

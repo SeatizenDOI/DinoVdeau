@@ -3,14 +3,20 @@ import torch
 import datasets
 import tokenizers
 import transformers
-import pandas as pd
 from pathlib import Path
-from argparse import Namespace
+from ..utils.enums import LabelType
+from ..data.DatasetManager import DatasetManager
+from ..model.HuggingModelManager import HuggingModelManager
 
-def format_training_results_to_markdown(trainer_state: dict) -> str:
+def format_training_results_to_markdown(trainer_state: dict, label_type: LabelType) -> str:
     training_logs = trainer_state.get("log_history", [])
+
     markdown_table = "Epoch | Validation Loss | Accuracy | F1 Macro | F1 Micro | Learning Rate\n"
+    if label_type == LabelType.PROBS:
+        markdown_table = "Epoch | Validation Loss | MAE | RMSE | R2 | Learning Rate\n"
+
     markdown_table += "--- | --- | --- | --- | --- | ---\n"
+
     
     seen_epochs = set()
 
@@ -20,23 +26,40 @@ def format_training_results_to_markdown(trainer_state: dict) -> str:
         if epoch in seen_epochs:
             continue  # Skip this log if the epoch has already been added
         seen_epochs.add(epoch)
+
         validation_loss = log.get("eval_loss", "N/A")
-        validation_accuracy = log.get("eval_accuracy", "N/A")
-        eval_f1_micro = log.get("eval_f1_micro", "N/A")
-        eval_f1_macro = log.get("eval_f1_macro", "N/A")
+        validation_accuracy_or_mae = log.get("eval_accuracy", "N/A") if label_type == LabelType.BIN else log.get("eval_mae", "N/A")
+        eval_f1_micro_or_rmse = log.get("eval_f1_micro", "N/A") if label_type == LabelType.BIN else log.get("eval_rmse", "N/A")
+        eval_f1_macro_or_r2 = log.get("eval_f1_macro", "N/A") if label_type == LabelType.BIN else log.get("eval_r2", "N/A")
         learning_rate = log.get("learning_rate", "N/A")
-        markdown_table += f"{epoch} | {validation_loss} | {validation_accuracy} | {eval_f1_micro} | {eval_f1_macro} | {learning_rate}\n"
+        markdown_table += f"{epoch} | {validation_loss} | {validation_accuracy_or_mae} | {eval_f1_micro_or_rmse} | {eval_f1_macro_or_r2} | {learning_rate}\n"
     
     return markdown_table
 
 
-def extract_test_results(test_results: dict) -> tuple[float, float, float, float]:
-    eval_loss = test_results.get('eval_loss', test_results.get('test_loss', 0.0))
-    f1_micro = test_results.get('eval_f1_micro', test_results.get('test_f1_micro', 0.0))
-    f1_macro = test_results.get('eval_f1_macro', test_results.get('test_f1_macro', 0.0))
-    accuracy = test_results.get('eval_accuracy', test_results.get('test_accuracy', 0.0))
-    return eval_loss, f1_micro, f1_macro, accuracy
+def extract_test_results(test_results: dict, label_type: LabelType, test_f1_per_class: dict) -> str:
+    
+    markdown = f"\n- Loss: {test_results.get('eval_loss', test_results.get('test_loss', 0.0)):.4f}"
+    markdown += f"\n- F1 Micro: {test_results.get('eval_f1_micro', test_results.get('test_f1_micro', 0.0)):.4f}"
+    markdown += f"\n- F1 Macro: {test_results.get('eval_f1_macro', test_results.get('test_f1_macro', 0.0)):.4f}"
+    markdown += f"\n- Accuracy: {test_results.get('eval_accuracy', test_results.get('test_accuracy', 0.0)):.4f}"
 
+    if label_type == LabelType.PROBS:
+
+        markdown += f"\n- RMSE: {test_results.get('eval_rmse', test_results.get('test_rmse', 0.0)):.4f}"
+        markdown += f"\n- MAE: {test_results.get('eval_mae', test_results.get('test_mae', 0.0)):.4f}"
+        markdown += f"\n- R2: {test_results.get('eval_r2', test_results.get('test_r2', 0.0)):.4f}"
+
+
+    if len(test_f1_per_class) > 0:
+        
+        markdown += "\n\n| Class | F1 per class |\n|----------|-------|\n"
+    
+        # Populate rows
+        for key, value in test_f1_per_class.items():
+            markdown += f"| {key} | {value:.4f} |\n"
+    
+    return markdown
 
 
 def save_hyperparameters_to_config(output_dir: Path, args) -> None:
@@ -71,18 +94,19 @@ def save_hyperparameters_to_config(output_dir: Path, args) -> None:
     print("Updated configuration saved to config.json")
 
 
-def generate_model_card(data_paths: list[Path], counts_df: pd.DataFrame, output_dir: Path, args: Namespace) -> None:
+def generate_model_card(data_paths: list[Path], modelManager: HuggingModelManager, datasetManager: DatasetManager) -> None:
 
     data = {}
     for data_path in data_paths:
+        if not data_path.exists(): 
+            data[data_path.stem] = {}
+            continue
         with open(data_path, 'r') as file:
             data[data_path.stem] = json.load(file)
   
-    model_name = data["config"].get('_name_or_path', 'Unknown model')  
-
-    markdown_training_results = format_training_results_to_markdown(data["trainer_state"])
-    eval_loss, f1_micro, f1_macro, accuracy = extract_test_results(data["test_results"])
-    markdown_counts = counts_df.to_markdown(index=False)
+    markdown_training_results = format_training_results_to_markdown(data["trainer_state"], datasetManager.label_type)
+    test_results_metrics_markdown = extract_test_results(data["test_results"], datasetManager.label_type, data["test_f1_per_class"])
+    markdown_counts = datasetManager.counts_df.to_markdown(index=False)
     transforms_markdown = format_transforms_to_markdown(data["transforms"])
     if data["config"].get('data_augmentation') == False :
         transforms_markdown = "No augmentation"
@@ -93,28 +117,25 @@ def generate_model_card(data_paths: list[Path], counts_df: pd.DataFrame, output_
 ---
 language:
 - eng
-license: wtfpl
+license: CC0-1.0
 tags:
-- {args.training_type}-image-classification
-- {args.training_type}
+- {modelManager.args.training_type}-image-classification
+- {modelManager.args.training_type}
 - generated_from_trainer
-base_model: {model_name}
+base_model: {modelManager.model_name}
 model-index:
-- name: {output_dir.name}
+- name: {modelManager.output_dir.name}
   results: []
 ---
 
-{args.new_model_name} is a fine-tuned version of [{model_name}](https://huggingface.co/{model_name}). It achieves the following results on the test set:
+{modelManager.args.new_model_name} is a fine-tuned version of [{modelManager.model_name}](https://huggingface.co/{modelManager.model_name}). It achieves the following results on the test set:
 
-- Loss: {eval_loss:.4f}
-- F1 Micro: {f1_micro:.4f}
-- F1 Macro: {f1_macro:.4f}
-- Accuracy: {accuracy:.4f}
+{test_results_metrics_markdown}
 
 ---
 
 # Model description
-{args.new_model_name} is a model built on top of {model_name} model for underwater multilabel image classification.The classification head is a combination of linear, ReLU, batch normalization, and dropout layers.
+{modelManager.args.new_model_name} is a model built on top of {modelManager.model_name} model for underwater multilabel image classification.The classification head is a combination of linear, ReLU, batch normalization, and dropout layers.
 \nThe source code for training the model can be found in this [Git repository](https://github.com/SeatizenDOI/DinoVdeau).
 
 - **Developed by:** [lombardata](https://huggingface.co/lombardata), credits to [César Leblanc](https://huggingface.co/CesarLeblanc) and [Victor Illien](https://huggingface.co/groderg)
@@ -127,7 +148,7 @@ You can use the raw model for classify diverse marine species, encompassing cora
 ---
 
 # Training and evaluation data
-Details on the number of images for each class are given in the following table:
+Details on the {'' if datasetManager.label_type == LabelType.BIN else 'estimated'} number of images for each class are given in the following table:
 {markdown_counts}
 
 ---
@@ -151,10 +172,10 @@ Data were augmented using the following transformations :
 """
 
     output_filename = "README.md"
-    with open(Path(output_dir, output_filename), 'w') as file:
+    with open(Path(modelManager.output_dir, output_filename), 'w') as file:
         file.write(markdown_content)
 
-    print(f"Model card generated and saved to {output_filename} in the directory {output_dir}")
+    print(f"Model card generated and saved to {output_filename} in the directory {modelManager.output_dir}")
 
 
 def format_transforms_to_markdown(transforms_dict):

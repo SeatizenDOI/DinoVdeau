@@ -3,15 +3,18 @@ from pathlib import Path
 from argparse import ArgumentParser, Namespace
 from huggingface_hub import HfFolder, HFSummaryWriter
 
-from src.utils.training import setup_trainer
-from src.data.data_loading import generate_labels
-from src.data.data_preprocessing import create_datasets
+from src.utils.enums import ClassificationType
+from src.utils.utils import print_gpu_is_used, get_config_env
 from src.utils.evaluation import evaluate_and_save, generate_threshold
-from src.utils.F1PerClassManager import F1PerClassManager, parse_target_scale_from_input
-from src.model.model_setup import setup_model, get_training_type_from_args, ClassificationType
 from src.utils.model_card_generator import generate_model_card, save_hyperparameters_to_config
-from src.utils.utils import print_gpu_is_used, send_data_to_hugging_face, get_session_name_and_ouput_dir, get_config_env
-    
+
+from src.data.DatasetManager import DatasetManager
+
+from src.model.HuggingModelManager import HuggingModelManager
+
+from src.trainer.training import setup_trainer
+from src.trainer.f1perclass import generate_f1_per_class
+
 def get_args() -> Namespace:
     parser = ArgumentParser(description="DINOv2 Image Classification Training Script")
     
@@ -38,7 +41,6 @@ def get_args() -> Namespace:
     parser.add_argument('--no_custom_head', action="store_true", help='Flag to use linear layer instead of custom head')
 
     # Global options.
-    parser.add_argument('--target_scale', type=str, default="fine_scale", help="Can be fine_scale (ASV) or medium_scale (DRONE)")
     parser.add_argument('--disable_web', action="store_true", help='Flag to disable the connection to the web')
     parser.add_argument('--config_path', default="config.json", help="Path to config.json file.")
 
@@ -54,36 +56,34 @@ def main(args: Namespace) -> None:
     config_env = get_config_env(args.config_path)
 
     print_gpu_is_used()
-
     start_time = time.time()
+        
+    # Setup dataset.
+    datasetManager = DatasetManager(args, config_env["ANNOTATION_PATH"])
 
-    # Create new model name.
-    training_type = get_training_type_from_args(args)
+    # Setup model.
+    modelManager = HuggingModelManager(args, datasetManager.label_type)
+    modelManager.setup_model_dir()
 
-    session_name, output_dir, resume_from_checkpoint, latest_checkpoint = get_session_name_and_ouput_dir(args, config_env)
 
-    print("\ninfo : Model name is ", session_name)
+    datasetManager.create_datasets(config_env["IMG_PATH"], modelManager.output_dir)
+    modelManager.setup_model(datasetManager.classes_names, datasetManager.id2label, datasetManager.label2id)
+
+    print("\ninfo : Model name is ", modelManager.model_name)
 
     # Load Huggingface token.
     if not args.disable_web:
         HfFolder.save_token(config_env["HUGGINGFACE_TOKEN"])
-        logger = HFSummaryWriter(repo_id=session_name, logdir=str(Path(output_dir, "runs")), commit_every=5)
-    
-    # Setup dataset.
-    ds, dummy_feature_extractor, train_df, counts_df = create_datasets(config_env["ANNOTATION_PATH"], args, config_env["IMG_PATH"], output_dir)
-    classes_names, id2label, label2id = generate_labels(train_df)
-    
-    # Setup model.
-    model = setup_model(args, classes_names, id2label, label2id)
+        logger = HFSummaryWriter(repo_id=modelManager.model_name, logdir=str(Path(modelManager.output_dir, "runs")), commit_every=5)
 
     # Setup trainer.
-    trainer = setup_trainer(args, model, ds, dummy_feature_extractor, output_dir)
+    trainer = setup_trainer(modelManager, datasetManager)
     
     # Start training.
     print("\ninfo : Training model...\n")
     if args.resume:
-        print("\ninfo : Resuming training from checkpoint \n", latest_checkpoint)
-        train_results = trainer.train(resume_from_checkpoint=resume_from_checkpoint)
+        print("\ninfo : Resuming training from checkpoint \n", modelManager.latest_checkpoint)
+        train_results = trainer.train(resume_from_checkpoint=modelManager.resume_from_checkpoint)
     else :
         train_results = trainer.train()
 
@@ -94,34 +94,31 @@ def main(args: Namespace) -> None:
     trainer.save_state()
     
     print("\ninfo : Evaluating model on test set...\n")
-    evaluate_and_save(args, trainer, ds["test"])
+    evaluate_and_save(args, trainer, datasetManager.prepared_ds["test"])
 
     # Generate f1 score per class based on target scale.
-    if training_type == ClassificationType.MULTILABEL:
+    if modelManager.training_type == ClassificationType.MULTILABEL:
         
         # Generate threshold file.
         print("\ninfo : Create threshold file on val set...\n")
-        thresholds = generate_threshold(trainer, ds["validation"], output_dir, classes_names)
+        thresholds = generate_threshold(trainer, datasetManager.prepared_ds["validation"], modelManager.output_dir, datasetManager.classes_names)
         
         print("\ninfo : Generate f1 score per class based on target scale...\n")
-        target_scale = parse_target_scale_from_input(args)
-        f1Manager = F1PerClassManager(target_scale, thresholds, classes_names, id2label)
-        f1Manager.generate(ds["test"], output_dir, model)
+        generate_f1_per_class(modelManager, datasetManager, thresholds)
 
     # Save hyperparameters.
-    save_hyperparameters_to_config(output_dir, args)
+    save_hyperparameters_to_config(modelManager.output_dir, args)
 
     # Generate model card.
-    files = ['train_results.json', 'test_results.json', 'trainer_state.json', 'all_results.json', 'config.json', 'transforms.json']
-    data_paths = [Path(output_dir, file) for file in files]
+    files = ['train_results.json', 'test_results.json', 'trainer_state.json', 'all_results.json', 'config.json', 'transforms.json', 'test_f1_per_class.json']
+    data_paths = [Path(modelManager.output_dir, file) for file in files]
     
     print("info : Generating model card...\n")
-    generate_model_card(data_paths, counts_df, output_dir, args)
+    generate_model_card(data_paths, modelManager, datasetManager)
 
     # Send data to hugging face if needed.
     if args.disable_web: return 
-    send_data_to_hugging_face(session_name, output_dir)
-
+    modelManager.send_data_to_hugging_face()
 
 if __name__ == "__main__":
     args = get_args()

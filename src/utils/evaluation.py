@@ -6,7 +6,7 @@ from datasets import Dataset
 from argparse import Namespace
 from sklearn.metrics import f1_score
 
-from ..utils.training import MyTrainer
+from ..trainer.training import MyTrainer
 
 def evaluate_and_save(args: Namespace, trainer: MyTrainer, ds_test: Dataset) -> None:
     metrics = trainer.evaluate(ds_test)
@@ -27,8 +27,10 @@ def sigmoid(_outputs):
     return 1.0 / (1.0 + np.exp(-_outputs))
 
 
+
 def logits_to_probs(predictions: np.ndarray) -> list:
     return [sigmoid(pred) for pred in predictions]
+
 
 def compute_best_threshold(y_true, y_probs):
     best_precision, best_threshold = 0.0, 0.0
