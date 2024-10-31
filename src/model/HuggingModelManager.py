@@ -35,7 +35,7 @@ class HuggingModelManager():
         training_type = "_monolabel" if self.training_type == ClassificationType.MONOLABEL else ""
         label_type = "_probs" if self.label_type == LabelType.PROBS else ""
 
-        self.model_name = f"{self.args.new_model_name}-{model_size}-{today}-{test_data}batch-size{self.args.batch_size}_{freeze}{training_type}"
+        self.model_name = f"{self.args.new_model_name}-{model_size}-{today}-{test_data}batch-size{self.args.batch_size}_{freeze}{training_type}{label_type}"
         self.output_dir = Path(self.config_env["MODEL_PATH"], self.model_name)
 
         
@@ -48,6 +48,10 @@ class HuggingModelManager():
                 self.resume_from_checkpoint = self.latest_checkpoint
             
         self.output_dir.mkdir(exist_ok=True, parents=True)
+
+        # Hugging face have a model name len limit fix to 96 so
+        if len(self.model_name) > 96:
+            self.model_name = self.model_name[0:96] 
 
 
     def setup_model(self, label_names: list, id2label: dict, label2id: dict):
