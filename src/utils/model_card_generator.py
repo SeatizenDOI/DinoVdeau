@@ -117,7 +117,7 @@ def generate_model_card(data_paths: list[Path], modelManager: HuggingModelManage
 ---
 language:
 - eng
-license: CC0-1.0
+license: cc0-1.0
 tags:
 - {modelManager.args.training_type}-image-classification
 - {modelManager.args.training_type}
