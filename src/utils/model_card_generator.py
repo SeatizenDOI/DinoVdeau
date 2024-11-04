@@ -28,9 +28,9 @@ def format_training_results_to_markdown(trainer_state: dict, label_type: LabelTy
         seen_epochs.add(epoch)
 
         validation_loss = log.get("eval_loss", "N/A")
-        validation_accuracy_or_mae = log.get("eval_accuracy", "N/A") if label_type == LabelType.BIN else log.get("eval_mae", "N/A")
-        eval_f1_micro_or_rmse = log.get("eval_f1_micro", "N/A") if label_type == LabelType.BIN else log.get("eval_rmse", "N/A")
-        eval_f1_macro_or_r2 = log.get("eval_f1_macro", "N/A") if label_type == LabelType.BIN else log.get("eval_r2", "N/A")
+        validation_accuracy_or_mae = f'{(log.get("eval_accuracy", "N/A") if label_type == LabelType.BIN else log.get("eval_mae", "N/A")):.4f}'
+        eval_f1_micro_or_rmse = f'{(log.get("eval_f1_micro", "N/A") if label_type == LabelType.BIN else log.get("eval_rmse", "N/A")):.4f}'
+        eval_f1_macro_or_r2 = f'{(log.get("eval_f1_macro", "N/A") if label_type == LabelType.BIN else log.get("eval_r2", "N/A")):.4f}'
         learning_rate = log.get("learning_rate", "N/A")
         markdown_table += f"{epoch} | {validation_loss} | {validation_accuracy_or_mae} | {eval_f1_micro_or_rmse} | {eval_f1_macro_or_r2} | {learning_rate}\n"
     
