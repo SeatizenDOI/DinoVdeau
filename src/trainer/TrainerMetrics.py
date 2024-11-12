@@ -1,7 +1,9 @@
 import torch
+import torch.nn.functional as F
 import numpy as np
 from transformers import EvalPrediction
-from sklearn.metrics import f1_score, accuracy_score, root_mean_squared_error, mean_absolute_error, r2_score, explained_variance_score
+from sklearn.metrics import f1_score, accuracy_score, root_mean_squared_error, mean_absolute_error, explained_variance_score
+
 
 from ..data.DatasetManager import DatasetManager
 from ..utils.enums import ClassificationType, LabelType
@@ -63,7 +65,7 @@ class TrainerMetrics:
         metrics = {
             'rmse': root_mean_squared_error(y_true, y_pred),
             'mae': mean_absolute_error(y_true, y_pred),
-            'r2': r2_score(y_true, y_pred),
+            'kl_divergence': F.kl_div(y_pred.log(), torch.Tensor(labels), reduction='batchmean').item(),
             'explained_variance': explained_variance_score(y_true, y_pred),
         }
 

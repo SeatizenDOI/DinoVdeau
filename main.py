@@ -3,7 +3,7 @@ from pathlib import Path
 from argparse import ArgumentParser, Namespace
 from huggingface_hub import HfFolder, HFSummaryWriter
 
-from src.utils.enums import ClassificationType
+from src.utils.enums import ClassificationType, LabelType
 from src.utils.utils import print_gpu_is_used, get_config_env
 from src.utils.evaluation import evaluate_and_save, generate_threshold
 from src.utils.model_card_generator import generate_model_card, save_hyperparameters_to_config
@@ -97,7 +97,7 @@ def main(args: Namespace) -> None:
     evaluate_and_save(args, trainer, datasetManager.prepared_ds["test"])
 
     # Generate f1 score per class based on target scale.
-    if modelManager.training_type == ClassificationType.MULTILABEL:
+    if modelManager.training_type == ClassificationType.MULTILABEL and datasetManager.label_type == LabelType.BIN:
         
         # Generate threshold file.
         print("\ninfo : Create threshold file on val set...\n")

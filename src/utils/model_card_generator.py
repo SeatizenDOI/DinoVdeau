@@ -13,7 +13,7 @@ def format_training_results_to_markdown(trainer_state: dict, label_type: LabelTy
 
     markdown_table = "Epoch | Validation Loss | Accuracy | F1 Macro | F1 Micro | Learning Rate\n"
     if label_type == LabelType.PROBS:
-        markdown_table = "Epoch | Validation Loss | MAE | RMSE | R2 | Learning Rate\n"
+        markdown_table = "Epoch | Validation Loss | MAE | RMSE | KL div | Learning Rate\n"
 
     markdown_table += "--- | --- | --- | --- | --- | ---\n"
 
@@ -30,7 +30,7 @@ def format_training_results_to_markdown(trainer_state: dict, label_type: LabelTy
         validation_loss = log.get("eval_loss", "N/A")
         validation_accuracy_or_mae = f'{(log.get("eval_accuracy", 0.0) if label_type == LabelType.BIN else log.get("eval_mae", 0.0)):.4f}'
         eval_f1_micro_or_rmse = f'{(log.get("eval_f1_micro", 0.0) if label_type == LabelType.BIN else log.get("eval_rmse", 0.0)):.4f}'
-        eval_f1_macro_or_r2 = f'{(log.get("eval_f1_macro", 0.0) if label_type == LabelType.BIN else log.get("eval_r2", 0.0)):.4f}'
+        eval_f1_macro_or_r2 = f'{(log.get("eval_f1_macro", 0.0) if label_type == LabelType.BIN else log.get("eval_kl_divergence", 0.0)):.4f}'
         learning_rate = log.get("learning_rate", "N/A")
         markdown_table += f"{epoch} | {validation_loss} | {validation_accuracy_or_mae} | {eval_f1_micro_or_rmse} | {eval_f1_macro_or_r2} | {learning_rate}\n"
     
@@ -48,7 +48,7 @@ def extract_test_results(test_results: dict, label_type: LabelType, test_f1_per_
 
         markdown += f"\n- RMSE: {test_results.get('eval_rmse', test_results.get('test_rmse', 0.0)):.4f}"
         markdown += f"\n- MAE: {test_results.get('eval_mae', test_results.get('test_mae', 0.0)):.4f}"
-        markdown += f"\n- R2: {test_results.get('eval_r2', test_results.get('test_r2', 0.0)):.4f}"
+        markdown += f"\n- KL Divergence: {test_results.get('eval_kl_divergence', test_results.get('test_kl_divergence', 0.0)):.4f}"
 
 
     if len(test_f1_per_class) > 0:
