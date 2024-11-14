@@ -40,9 +40,12 @@ def format_training_results_to_markdown(trainer_state: dict, label_type: LabelTy
 def extract_test_results(test_results: dict, label_type: LabelType, test_f1_per_class: dict) -> str:
     
     markdown = f"\n- Loss: {test_results.get('eval_loss', test_results.get('test_loss', 0.0)):.4f}"
-    markdown += f"\n- F1 Micro: {test_results.get('eval_f1_micro', test_results.get('test_f1_micro', 0.0)):.4f}"
-    markdown += f"\n- F1 Macro: {test_results.get('eval_f1_macro', test_results.get('test_f1_macro', 0.0)):.4f}"
-    markdown += f"\n- Accuracy: {test_results.get('eval_accuracy', test_results.get('test_accuracy', 0.0)):.4f}"
+
+    if label_type == LabelType.BIN:
+
+        markdown += f"\n- F1 Micro: {test_results.get('eval_f1_micro', test_results.get('test_f1_micro', 0.0)):.4f}"
+        markdown += f"\n- F1 Macro: {test_results.get('eval_f1_macro', test_results.get('test_f1_macro', 0.0)):.4f}"
+        markdown += f"\n- Accuracy: {test_results.get('eval_accuracy', test_results.get('test_accuracy', 0.0)):.4f}"
 
     if label_type == LabelType.PROBS:
 
