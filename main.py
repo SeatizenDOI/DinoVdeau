@@ -1,7 +1,7 @@
 import time
 from pathlib import Path
 from argparse import ArgumentParser, Namespace
-from huggingface_hub import HfFolder, HFSummaryWriter
+from huggingface_hub import HfFolder
 
 from src.utils.enums import ClassificationType, LabelType
 from src.utils.utils import print_gpu_is_used, get_config_env
@@ -35,7 +35,7 @@ def get_args() -> Namespace:
     parser.add_argument('--resume', action="store_true", help='Flag to resume training from the last checkpoint')
 
     # Model options.
-    parser.add_argument('--model_name', type=str, default="facebook/dinov2-large", help="Model name to fine-tune on hugging-face.")
+    parser.add_argument('--model_name', type=str, default="facebook/dinov2-with-registers-large", help="Model name to fine-tune on hugging-face.")
     parser.add_argument('--new_model_name', type=str, default="DinoVdeau", help="New model name")
     parser.add_argument('-tt', '--training_type', type=str, default="multilabel", help="Choose your training type. Can be multilabel or monolabel.")
     parser.add_argument('--no_custom_head', action="store_true", help='Flag to use linear layer instead of custom head')
@@ -74,7 +74,6 @@ def main(args: Namespace) -> None:
     # Load Huggingface token.
     if not args.disable_web:
         HfFolder.save_token(config_env["HUGGINGFACE_TOKEN"])
-        logger = HFSummaryWriter(repo_id=modelManager.model_name, logdir=str(Path(modelManager.output_dir, "runs")), commit_every=5)
 
     # Setup trainer.
     trainer = setup_trainer(modelManager, datasetManager)
