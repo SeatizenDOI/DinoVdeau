@@ -146,11 +146,17 @@ This framework is distributed under the CC0-1.0 license. See `LICENSE.txt` for m
 If you find this repository useful, please consider giving a star :star: and citation :fish::
 
 ```
-@article{XXX,
-  title={YYY},
-  author={Contini, Matteo},
-  journal={ZZZ},
-  year={2050}
+@article{Contini2025,
+   author = {Matteo Contini and Victor Illien and Mohan Julien and Mervyn Ravitchandirane and Victor Russias and Arthur Lazennec and Thomas Chevrier and Cam Ly Rintz and Léanne Carpentier and Pierre Gogendeau and César Leblanc and Serge Bernard and Alexandre Boyer and Justine Talpaert Daudon and Sylvain Poulain and Julien Barde and Alexis Joly and Sylvain Bonhommeau},
+   doi = {10.1038/s41597-024-04267-z},
+   issn = {2052-4463},
+   issue = {1},
+   journal = {Scientific Data},
+   pages = {67},
+   title = {Seatizen Atlas: a collaborative dataset of underwater and aerial marine imagery},
+   volume = {12},
+   url = {https://doi.org/10.1038/s41597-024-04267-z},
+   year = {2025},
 }
 ```
 
