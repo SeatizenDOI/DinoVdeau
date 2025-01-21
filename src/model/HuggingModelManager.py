@@ -1,8 +1,8 @@
 
 import os
 from pathlib import Path
-from datetime import date
 from argparse import Namespace
+from datetime import date, datetime
 from huggingface_hub import HfApi, HfFolder
 from transformers import AutoConfig, AutoModelForImageClassification
 
@@ -18,6 +18,7 @@ class HuggingModelManager():
         self.label_type = label_type
 
         self.model_name = ""
+        self.model_name_with_username = None
         self.output_dir = Path("")
         self.resume_from_checkpoint, self.latest_checkpoint = None, None
 
@@ -27,7 +28,9 @@ class HuggingModelManager():
     def setup_model_dir(self) -> None:
         """ Return session_name and output_dir computed by args. """
 
-        today = date.today().strftime("%Y_%m_%d")
+        now = datetime.now()
+        elapsed_second_in_day = now.hour * 3600 + now.minute * 60 + now.second
+        today = f'{date.today().strftime("%Y_%m_%d")}_{elapsed_second_in_day}'
         model_without_enterprise = self.args.model_name.split("/")[1]
         model_size = model_without_enterprise[model_without_enterprise.find("-")+1:]
         freeze = 'unfreeze' if self.args.no_freeze else 'freeze'
@@ -35,7 +38,7 @@ class HuggingModelManager():
         training_type = "_monolabel" if self.training_type == ClassificationType.MONOLABEL else ""
         label_type = "_probs" if self.label_type == LabelType.PROBS else ""
 
-        self.model_name = f"{self.args.new_model_name}-{model_size}-{today}-{test_data}batch-size{self.args.batch_size}_{freeze}{training_type}{label_type}"
+        self.model_name = f"{self.args.new_model_name}-{model_size}-{today}-{test_data}bs{self.args.batch_size}_{freeze}{training_type}{label_type}"
         self.output_dir = Path(self.config_env["MODEL_PATH"], self.model_name)
 
         
@@ -114,9 +117,24 @@ class HuggingModelManager():
                 token=token,
                 path_or_fileobj=filepath,
                 path_in_repo=filepath.name,
-                repo_id=repo_id,
+                repo_id=self.model_name_with_username,
                 commit_message=f"Upload {filepath.name}"
             )
 
         print(f"All files successfully uploaded to the Hub: {repo_url}")
 
+
+    def get_hf_username(self) -> str:
+        hf_api = HfApi(token=self.config_env["HUGGINGFACE_TOKEN"])
+        try:
+            username = hf_api.whoami()["name"]
+        except:
+            raise NameError("User not found with hugging face token provide.")
+
+        return username
+    
+    def get_model_name_with_username(self) -> str:
+        if self.model_name_with_username == None:
+            self.model_name_with_username = f"{self.get_hf_username()}/{self.model_name}"
+        
+        return self.model_name_with_username

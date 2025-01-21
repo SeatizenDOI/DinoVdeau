@@ -57,7 +57,7 @@ def setup_trainer(modelManager: HuggingModelManager, datasetManager: DatasetMana
         data_collator = trainingMetrics.get_collate_fn_from_training_type(),
         train_dataset = datasetManager.prepared_ds["train"],
         eval_dataset = datasetManager.prepared_ds["validation"],
-        tokenizer = datasetManager.dummy_feature_extractor,
+        processing_class=datasetManager.dummy_feature_extractor,
         callbacks = [early_stop],
         compute_metrics = trainingMetrics.get_compute_metrics_for_training_type(),
         optimizers = (optimizer, lr_scheduler)

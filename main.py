@@ -1,7 +1,7 @@
 import time
 from pathlib import Path
 from argparse import ArgumentParser, Namespace
-from huggingface_hub import HfFolder, HFSummaryWriter
+from huggingface_hub import HfFolder, HFSummaryWriter, HfApi, ModelCard
 
 from src.utils.enums import ClassificationType, LabelType
 from src.utils.utils import print_gpu_is_used, get_config_env
@@ -14,6 +14,8 @@ from src.model.HuggingModelManager import HuggingModelManager
 
 from src.trainer.training import setup_trainer
 from src.trainer.f1perclass import generate_f1_per_class
+
+HF_HUB_DISABLE_EXPERIMENTAL_WARNING=1
 
 def get_args() -> Namespace:
     parser = ArgumentParser(description="DINOv2 Image Classification Training Script")
@@ -73,8 +75,11 @@ def main(args: Namespace) -> None:
 
     # Load Huggingface token.
     if not args.disable_web:
-        HfFolder.save_token(config_env["HUGGINGFACE_TOKEN"])
-        logger = HFSummaryWriter(repo_id=modelManager.model_name, logdir=str(Path(modelManager.output_dir, "runs")), commit_every=5)
+        logger = HFSummaryWriter(
+            repo_id=modelManager.get_model_name_with_username(), 
+            logdir=str(Path(modelManager.output_dir, "runs")), 
+            commit_every=1
+        )
 
     # Setup trainer.
     trainer = setup_trainer(modelManager, datasetManager)
