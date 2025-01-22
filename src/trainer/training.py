@@ -8,10 +8,10 @@ from ..data.DatasetManager import DatasetManager
 from ..model.HuggingModelManager import HuggingModelManager
 
 class MyTrainer(Trainer):
-    def log(self, logs: dict[str, float]) -> None:
+    def log(self, logs: dict[str, float], start_time: float | None) -> None:
         # Ensure evaluations are logged only at the end of each epoch
         logs["learning_rate"] = self._get_learning_rate()
-        super().log(logs)
+        super().log(logs, start_time)
 
 
 def setup_trainer(modelManager: HuggingModelManager, datasetManager: DatasetManager) -> MyTrainer:

@@ -1,7 +1,7 @@
 import time
 from pathlib import Path
+from huggingface_hub import HFSummaryWriter
 from argparse import ArgumentParser, Namespace
-from huggingface_hub import HfFolder, HFSummaryWriter, HfApi, ModelCard
 
 from src.utils.enums import ClassificationType, LabelType
 from src.utils.utils import print_gpu_is_used, get_config_env
@@ -75,7 +75,7 @@ def main(args: Namespace) -> None:
 
     # Load Huggingface token.
     if not args.disable_web:
-        logger = HFSummaryWriter(
+        logger = HFSummaryWriter( # Inside HFSummaryWriter at line 184, write card.data.tags = []
             repo_id=modelManager.get_model_name_with_username(), 
             logdir=str(Path(modelManager.output_dir, "runs")), 
             commit_every=1
