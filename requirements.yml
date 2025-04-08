@@ -9,7 +9,7 @@ dependencies:
       - pandas==2.2.3
       - kornia==0.7.3
       - datasets==3.0.2
-      - huggingface-hub==0.27.1
+      - huggingface-hub==0.30.2
       - transformers==4.48.0
       - scikit-learn==1.5.2
       - tensorboardX==2.6.2.2
