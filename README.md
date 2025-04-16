@@ -1,4 +1,5 @@
 <p align="center">
+  <a href="https://doi.org/10.5281/zenodo.15228874"><img src="https://zenodo.org/badge/803715394.svg" alt="DOI"></a>
   <a href="https://github.com/SeatizenDOI/DinoVdeau/graphs/contributors"><img src="https://img.shields.io/github/contributors/SeatizenDOI/DinoVdeau" alt="GitHub contributors"></a>
   <a href="https://github.com/SeatizenDOI/DinoVdeau/network/members"><img src="https://img.shields.io/github/forks/SeatizenDOI/DinoVdeau" alt="GitHub forks"></a>
   <a href="https://github.com/SeatizenDOI/DinoVdeau/issues"><img src="https://img.shields.io/github/issues/SeatizenDOI/DinoVdeau" alt="GitHub issues"></a>
