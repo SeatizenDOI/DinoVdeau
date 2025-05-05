@@ -28,30 +28,6 @@ A demo of the model can be found <a href="https://huggingface.co/spaces/lombarda
 It is a slightly adapted version of the original [DINOv2](https://arxiv.org/abs/2304.07193), GitHub [repository](https://github.com/facebookresearch/dinov2/).
 
 
-## Project Structure
-
-This repository is organized as follows to facilitate model training and evaluation:
-
-```
-.
-├── config.json                         # General configuration for training parameters
-├── main.py                             # Main script to start training and evaluation with command-line arguments for training
-├── README.md                           # Project documentation and instructions
-├── requirements.yml                    # Conda environment file to reproduce the project environment
-└── src
-    ├── data
-    │   ├── data_loading.py             # Handles data loading
-    │   └── data_preprocessing.py       # Preprocesses data for model input
-    ├── model
-    │   └── model_setup.py              # Sets up the model architecture and configuration
-    └── utils 
-        ├── evaluation.py               # Evaluation utilities for model performance
-        ├── F1PerClassManager.py        # Manage to get the correct function to match the arguments.
-        ├── model_card_generator.py     # Tools to generate model card on hugging face.
-        ├── training.py                 # Utilities to facilitate the training process
-        └── utils.py                    # General utilities for model card.
-```
-
 ## Major Frameworks and Libraries
 
 This section lists the key frameworks and libraries used to create the models included in the project:
@@ -88,8 +64,8 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 {
   "ANNOTATION_PATH": "Path to annotation folder with you train.csv, val.csv, test.csv files",
   "IMG_PATH": "Path to images folder",
-  "MODEL_PATH": "",
-  "MODEL_NAME": "",
+  "MODEL_PATH": "Path to store the new model",
+  "MODEL_NAME": "Path to model when you want to resume",
   "HUGGINGFACE_TOKEN": "YOUR API TOKEN",
   "LOCAL_MODEL_PATH": "/mnt/disk_victorlebos/data/datarmor/models/local_models/dinov2-large/"
 }
@@ -108,20 +84,35 @@ python main.py [OPTIONS]
 
 Where `[OPTIONS]` can include:
 
-- `--image_size`: Specify the dimensions of input images.
-- `--batch_size`: Define the batch size for training and validation.
-- `--epochs`: Set the number of epochs for training.
-- `--initial_learning_rate`: Initial learning rate for optimization.
-- `--weight_decay`: Weight decay factor for the optimizer.
-- `--early_stopping_patience`: Early stopping criterion based on validation loss.
-- `--patience_lr_scheduler`: Patience for learning rate scheduler adjustments.
-- `--factor_lr_scheduler`: Multiplicative factor for reducing the learning rate.
-- `--model_name`: Path or identifier for the model to be used.
-- `--freeze_flag`: Boolean to indicate if the model backbone should be frozen.
-- `--data_aug_flag`: Boolean to enable or disable data augmentation.
-- `--test_data_flag`: Boolean to test the workflow on a small subset of data, set to True to enable it.
-- `--enable_web`: Boolean to enable the connection to the web, set to False to disable it.
-- `--resume`: Boolean to resume training from the last checkpoint. If set to True, MODEL_NAME and MODEL_PATH must be provided in the config file.
+### Training Parameters
+
+- `--image_size`: Image size for both dimensions. (default: 518)
+- `--batch_size`: Batch size for training and evaluation. (default: 32)
+- `--epochs`: Number of training epochs. (default: 150)
+- `--initial_learning_rate`: Initial learning rate for the optimizer. (default: 0.001)
+- `--weight_decay`: Weight decay factor for the optimizer. (default: 0.0001)
+- `--early_stopping_patience`: Number of epochs with no improvement after which training will be stopped. (default: 10)
+- `--patience_lr_scheduler`: Number of epochs to wait before reducing the learning rate. (default: 5)
+- `--factor_lr_scheduler`: Factor by which the learning rate will be reduced. (default: 0.1)
+
+### Model Configuration
+
+- `--model_name`: Name or path of the pretrained model from Hugging Face. (default: "facebook/dinov2-large")
+- `--new_model_name`: Name to assign to the saved model. (default: "test_dino")
+- `--training_type`: Training strategy, choose between "multilabel" or "monolabel". (default: "multilabel")
+- `--no_custom_head`: If set, uses a linear classification head instead of a custom one.
+
+### Training Options
+
+- `--no_freeze`: If set, the model backbone will not be frozen (i.e., it will be fine-tuned).
+- `--no_data_aug`: If set, disables data augmentation during training.
+- `--test_data`: If set, uses a small subset of data to test the workflow.
+- `--resume`: If set, resumes training from the last checkpoint.
+
+### Global Options
+
+- `--disable_web`: If set, disables any connection to the web.
+- `--config_path`: Path to the configuration file. (default: "config.json")
 
 ## Team
 
