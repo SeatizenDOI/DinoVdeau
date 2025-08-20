@@ -1,14 +1,32 @@
 
 import os
+import torch.nn as nn
 from pathlib import Path
 from argparse import Namespace
 from datetime import date, datetime
 from huggingface_hub import HfApi, HfFolder
-from transformers import AutoConfig, AutoModelForImageClassification
+from transformers import AutoModel
 
 from .model_setup import create_head
 from ..utils.utils import get_config_env
 from ..utils.enums import LabelType, get_training_type_from_args, ClassificationType
+
+class DinoV3Classifier(nn.Module):
+            
+    def __init__(self, backbone, num_labels):
+        super().__init__()
+        self.backbone = backbone
+        self.head = create_head(num_features=backbone.config.hidden_size, number_classes=num_labels)
+
+    def forward(self, pixel_values, labels=None):
+        outputs = self.backbone(pixel_values=pixel_values)
+        cls_tokens = outputs.pooler_output  # DINOv3 uses pooler_output
+        logits = self.head(cls_tokens)
+        loss = None
+        if labels is not None:
+            loss_fn = nn.CrossEntropyLoss()
+            loss = loss_fn(logits, labels)
+        return {"loss": loss, "logits": logits}
 
 class HuggingModelManager():
     def __init__(self, args: Namespace, label_type: LabelType) -> None:
@@ -59,37 +77,48 @@ class HuggingModelManager():
 
     def setup_model(self, label_names: list, id2label: dict, label2id: dict):
 
-        model_config = AutoConfig.from_pretrained(
-            self.args.model_name,
-            num_labels=len(label_names),
-            id2label=id2label,
-            label2id=label2id,
-            problem_type=self.training_type.value, # Multi or monolabel
-            image_size=self.args.image_size
-        )
-        # Get hidden_size number from model
-        hidden_size = 1024 # Default value if not found.
-        if hasattr(model_config, "hidden_size"):
-            hidden_size = getattr(model_config, "hidden_size")
-        if hasattr(model_config, "hidden_sizes"):
-            hidden_size = getattr(model_config, "hidden_sizes")[-1]
+        base_model = AutoModel.from_pretrained(self.args.model_name)
 
-        if not self.args.disable_web:
-            self.model = AutoModelForImageClassification.from_pretrained(self.args.model_name, config=model_config, ignore_mismatched_sizes=True)
-        else:
-            model_name = self.config_env["LOCAL_MODEL_PATH"] if self.config_env["LOCAL_MODEL_PATH"] != '' else self.args.model_name
+        # Freeze backbone parameters
+        for param in base_model.parameters():
+            param.requires_grad = False
 
-            self.model = AutoModelForImageClassification.from_pretrained(model_name, config=model_config, ignore_mismatched_sizes=True)
+        # Build model with custom head
+        
 
-        if not(self.args.no_custom_head):
-            self.model.classifier = create_head(hidden_size * 2, model_config.num_labels)
+        self.model = DinoV3Classifier(base_model, len(label_names))
 
-        if not self.args.no_freeze:
-            model_name = self.args.model_name.split("/")[1].split("-")[0] # Extract dinov2 from facebook/dinov2-large
-            for name, param in self.model.named_parameters():
-                if name.startswith(model_name):
-                    param.requires_grad = False
-    
+
+        # model_config = AutoConfig.from_pretrained(
+        #     self.args.model_name,
+        #     num_labels=len(label_names),
+        #     id2label=id2label,
+        #     label2id=label2id,
+        #     problem_type=self.training_type.value, # Multi or monolabel
+        #     image_size=self.args.image_size
+        # )
+        # # Get hidden_size number from model
+        # hidden_size = 1024 # Default value if not found.
+        # if hasattr(model_config, "hidden_size"):
+        #     hidden_size = getattr(model_config, "hidden_size")
+        # if hasattr(model_config, "hidden_sizes"):
+        #     hidden_size = getattr(model_config, "hidden_sizes")[-1]
+
+        # if not self.args.disable_web:
+        #     self.model = AutoModel.from_pretrained(self.args.model_name, config=model_config, ignore_mismatched_sizes=True)
+        # else:
+        #     model_name = self.config_env["LOCAL_MODEL_PATH"] if self.config_env["LOCAL_MODEL_PATH"] != '' else self.args.model_name
+
+        #     self.model = AutoModel.from_pretrained(model_name, config=model_config, ignore_mismatched_sizes=True)
+
+        # if not(self.args.no_custom_head):
+        #     self.model.classifier = create_head(hidden_size * 2, model_config.num_labels)
+
+        # if not self.args.no_freeze:
+        #     model_name = self.args.model_name.split("/")[1].split("-")[0] # Extract dinov2 from facebook/dinov2-large
+        #     for name, param in self.model.named_parameters():
+        #         if name.startswith(model_name):
+        #             param.requires_grad = False
     
     def send_data_to_hugging_face(self) -> None:
         """ Send files to hugging face."""

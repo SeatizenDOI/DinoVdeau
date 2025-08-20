@@ -131,14 +131,14 @@ model-index:
   results: []
 ---
 
-{modelManager.args.new_model_name} is a fine-tuned version of [{modelManager.model_name}](https://huggingface.co/{modelManager.model_name}). It achieves the following results on the test set:
+{modelManager.args.new_model_name} is a fine-tuned version of [{modelManager.args.model_name}](https://huggingface.co/{modelManager.args.model_name}). It achieves the following results on the test set:
 
 {test_results_metrics_markdown}
 
 ---
 
 # Model description
-{modelManager.args.new_model_name} is a model built on top of {modelManager.model_name} model for underwater multilabel image classification.The classification head is a combination of linear, ReLU, batch normalization, and dropout layers.
+{modelManager.args.new_model_name} is a model built on top of {modelManager.args.model_name} model for underwater multilabel image classification.The classification head is a combination of linear, ReLU, batch normalization, and dropout layers.
 \nThe source code for training the model can be found in this [Git repository](https://github.com/SeatizenDOI/DinoVdeau).
 
 - **Developed by:** [lombardata](https://huggingface.co/lombardata), credits to [César Leblanc](https://huggingface.co/CesarLeblanc) and [Victor Illien](https://huggingface.co/groderg)

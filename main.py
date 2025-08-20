@@ -37,8 +37,8 @@ def get_args() -> Namespace:
     parser.add_argument('--resume', action="store_true", help='Flag to resume training from the last checkpoint')
 
     # Model options.
-    parser.add_argument('--model_name', type=str, default="facebook/dinov2-large", help="Model name to fine-tune on hugging-face.")
-    parser.add_argument('--new_model_name', type=str, default="test_dino", help="New model name")
+    parser.add_argument('--model_name', type=str, default="facebook/dinov3-vitl16-pretrain-lvd1689m", help="Model name to fine-tune on hugging-face.")
+    parser.add_argument('--new_model_name', type=str, default="Dinovdeau3", help="New model name")
     parser.add_argument('-tt', '--training_type', type=str, default="multilabel", help="Choose your training type. Can be multilabel or monolabel.")
     parser.add_argument('--no_custom_head', action="store_true", help='Flag to use linear layer instead of custom head')
 
